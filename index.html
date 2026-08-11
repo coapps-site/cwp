@@ -1407,7 +1407,16 @@ ${copy.innerHTML}<footer>Europlan CWPS record copy. The controlled master remain
       if (confirm("Delete this row? This does not change the Markdown master.")) {
         deleteTableRow(deleteBtn.dataset.tableKey, deleteBtn.dataset.rowKey);
       }
+      return;
     }
+    // Tapping a field directly (before pressing "Edit yellow items"/"Edit
+    // risk assessment") should just start editing it, rather than silently
+    // doing nothing - the yellow boxes already look and read as tappable.
+    if (state.editing || elements.recordToolbar.hidden) return;
+    const field = event.target.closest?.(".editable-placeholder, .record-editable-cell");
+    if (!field || field.classList.contains("risk-score-output")) return;
+    setRecordMode(true, false);
+    field.focus();
   });
   elements.content.addEventListener("input", (event) => {
     if (event.target.closest?.(".risk-input")) updateRiskRow(event.target.closest("tr"));
