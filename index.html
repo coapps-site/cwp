@@ -1,0 +1,1248 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Europlan Construction Work Package System for SC021 and SC038">
+  <title>Europlan CWPS Mobile - SC021 &amp; SC038</title>
+  <style>
+:root {
+  color-scheme: light;
+  --navy: #0b1d34;
+  --navy-2: #132a47;
+  --blue: #1d5f91;
+  --blue-soft: #e8f2f8;
+  --ink: #182230;
+  --muted: #637083;
+  --line: #d9e0e8;
+  --line-strong: #bdc8d4;
+  --surface: #ffffff;
+  --surface-2: #f3f6f9;
+  --canvas: #e9eef3;
+  --yellow: #fff1a8;
+  --yellow-border: #d5a900;
+  --red: #a52b2b;
+  --shadow: 0 12px 34px rgba(11, 29, 52, .10);
+  --radius: 12px;
+  --sidebar-width: 312px;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --navy: #081524;
+  --navy-2: #10263e;
+  --blue: #73b5dd;
+  --blue-soft: #17344a;
+  --ink: #e8eef4;
+  --muted: #aab6c4;
+  --line: #344252;
+  --line-strong: #536273;
+  --surface: #142131;
+  --surface-2: #101c2a;
+  --canvas: #0b1420;
+  --yellow: #5d4c00;
+  --yellow-border: #d8b72d;
+  --red: #ff9999;
+  --shadow: 0 12px 34px rgba(0, 0, 0, .28);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; color: var(--ink); background: var(--canvas); font-size: 15px; line-height: 1.6; }
+button, input { font: inherit; }
+button { color: inherit; }
+a { color: var(--blue); }
+a:hover { text-decoration-thickness: 2px; }
+.skip-link { position: fixed; z-index: 100; top: 8px; left: 8px; padding: 8px 12px; background: var(--surface); transform: translateY(-150%); }
+.skip-link:focus { transform: none; }
+
+.app-shell { min-height: 100vh; }
+.topbar { position: fixed; z-index: 20; inset: 0 0 auto 0; height: 66px; display: flex; align-items: center; gap: 14px; padding: 0 22px; color: #fff; background: var(--navy); border-bottom: 1px solid rgba(255,255,255,.12); }
+.brand { display: inline-flex; align-items: center; gap: 11px; color: #fff; text-decoration: none; letter-spacing: .01em; }
+.brand-mark { display: grid; place-items: center; width: 34px; height: 34px; color: var(--navy); background: #fff; border-radius: 7px; font-weight: 900; font-size: 18px; }
+.brand strong, .brand small { display: block; line-height: 1.2; }
+.brand small { margin-top: 2px; color: #b7c7d8; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.topbar-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.icon-button, .print-button, .text-button { border: 1px solid rgba(255,255,255,.25); background: transparent; border-radius: 8px; cursor: pointer; }
+.icon-button { width: 38px; height: 38px; font-size: 18px; }
+.icon-button:hover, .print-button:hover { background: rgba(255,255,255,.1); }
+.print-button { padding: 8px 13px; color: #fff; }
+.menu-button { display: none; }
+
+.sidebar { position: fixed; z-index: 15; top: 66px; bottom: 0; left: 0; width: var(--sidebar-width); display: flex; flex-direction: column; background: var(--surface); border-right: 1px solid var(--line); overflow: hidden; }
+.sidebar-head { padding: 20px 18px 14px; border-bottom: 1px solid var(--line); }
+.sidebar-head label { display: block; margin-bottom: 7px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.search-box { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; }
+.search-box:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 18%, transparent); }
+.search-box input { width: 100%; min-width: 0; border: 0; outline: 0; color: var(--ink); background: transparent; }
+.search-box kbd { color: var(--muted); font: 11px ui-monospace, monospace; border: 1px solid var(--line-strong); border-radius: 4px; padding: 1px 5px; }
+.package-meta { display: flex; justify-content: space-between; margin: 9px 1px 0; color: var(--muted); font-size: 11px; }
+#documentNav { flex: 1; overflow: auto; padding: 10px 9px 20px; }
+.nav-group { margin-bottom: 9px; }
+.nav-group-title { margin: 14px 10px 5px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+.nav-item { display: grid; grid-template-columns: 63px 1fr; gap: 8px; align-items: center; width: 100%; padding: 8px 10px; border: 0; border-left: 3px solid transparent; border-radius: 6px; color: var(--ink); background: transparent; text-align: left; cursor: pointer; }
+.nav-item:hover { background: var(--surface-2); }
+.nav-item.active { color: var(--blue); background: var(--blue-soft); border-left-color: var(--blue); font-weight: 700; }
+.nav-id { font: 700 11px ui-monospace, SFMono-Regular, Consolas, monospace; color: var(--muted); }
+.nav-item.active .nav-id { color: var(--blue); }
+.nav-title { line-height: 1.25; font-size: 13px; }
+.sidebar-footer { display: flex; gap: 9px; align-items: center; padding: 13px 18px; color: var(--muted); background: var(--surface-2); border-top: 1px solid var(--line); font-size: 12px; line-height: 1.25; }
+.sidebar-footer small { font-size: 10px; }
+.status-dot { width: 9px; height: 9px; background: #3b9165; border-radius: 50%; box-shadow: 0 0 0 3px color-mix(in srgb, #3b9165 20%, transparent); }
+.sidebar-scrim { display: none; }
+
+.workspace { min-height: 100vh; margin-left: var(--sidebar-width); padding-top: 66px; }
+.draft-banner { display: flex; gap: 12px; align-items: center; padding: 9px 28px; color: #5c4300; background: #fff3bf; border-bottom: 1px solid #e8cf66; font-size: 12px; }
+html[data-theme="dark"] .draft-banner { color: #fff1ae; background: #493b0c; border-bottom-color: #726221; }
+.draft-banner strong { text-transform: uppercase; letter-spacing: .06em; font-size: 10px; }
+.document-layout { display: grid; grid-template-columns: minmax(0, 880px) 220px; gap: 28px; justify-content: center; align-items: start; padding: 28px 34px 70px; }
+.document-card { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; outline: 0; }
+.document-card:focus-visible { box-shadow: 0 0 0 3px var(--blue), var(--shadow); }
+.document-header { display: flex; justify-content: space-between; gap: 25px; padding: 33px 38px 26px; border-bottom: 1px solid var(--line); }
+.eyebrow { display: block; color: var(--blue); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.document-header h1, .results-heading h1 { margin: 5px 0 0; color: var(--navy-2); font-size: clamp(25px, 3vw, 34px); line-height: 1.15; }
+html[data-theme="dark"] .document-header h1, html[data-theme="dark"] .results-heading h1 { color: var(--ink); }
+.metadata { flex: 0 0 210px; display: grid; grid-template-columns: auto 1fr; align-content: start; gap: 5px 10px; margin: 1px 0 0; font-size: 11px; }
+.metadata dt { color: var(--muted); font-weight: 700; text-transform: uppercase; }
+.metadata dd { margin: 0; text-align: right; }
+.status-pill { display: inline-block; padding: 1px 7px; color: var(--red); background: color-mix(in srgb, var(--red) 10%, transparent); border: 1px solid color-mix(in srgb, var(--red) 28%, transparent); border-radius: 999px; font-weight: 800; }
+.document-content { padding: 32px 38px 44px; overflow-wrap: anywhere; }
+.record-toolbar { padding: 13px 38px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+.record-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.record-actions button { padding: 6px 10px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.record-actions button:hover { color: var(--blue); border-color: var(--blue); }
+.record-actions button[aria-pressed="true"] { color: #fff; background: var(--blue); border-color: var(--blue); }
+.record-actions .danger-button { color: var(--red); }
+.record-status { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.35; }
+.record-status.success { color: #27714d; }
+.record-status.warning { color: #8b6500; }
+.document-content h1 { display: none; }
+.document-content h2 { margin: 2.1em 0 .7em; padding-bottom: .34em; color: var(--navy-2); border-bottom: 1px solid var(--line); font-size: 21px; line-height: 1.25; }
+.document-content h3 { margin: 1.7em 0 .55em; color: var(--navy-2); font-size: 17px; }
+html[data-theme="dark"] .document-content h2, html[data-theme="dark"] .document-content h3 { color: var(--ink); }
+.document-content p { margin: .75em 0; }
+.document-content ul, .document-content ol { padding-left: 1.4em; }
+.document-content li { margin: .35em 0; }
+.document-content blockquote { margin: 1em 0; padding: .65em 1em; color: var(--muted); background: var(--surface-2); border-left: 4px solid var(--blue); }
+.document-content code { padding: .1em .35em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; font: .88em ui-monospace, SFMono-Regular, Consolas, monospace; }
+.document-content pre { overflow: auto; padding: 14px; background: var(--navy); color: #eaf2f8; border-radius: 8px; }
+.document-content pre code { padding: 0; color: inherit; background: transparent; border: 0; }
+.table-wrap { max-width: 100%; margin: 1.25em 0; overflow-x: auto; border: 1px solid var(--line); border-radius: 7px; }
+.document-content table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.45; }
+.document-content th { color: var(--navy-2); background: var(--surface-2); text-align: left; font-size: 10px; letter-spacing: .035em; text-transform: uppercase; }
+html[data-theme="dark"] .document-content th { color: var(--ink); }
+.document-content th, .document-content td { min-width: 76px; padding: 9px 10px; vertical-align: top; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.document-content tr:last-child td { border-bottom: 0; }
+.document-content th:last-child, .document-content td:last-child { border-right: 0; }
+.placeholder { padding: .06em .3em; color: #392c00; background: var(--yellow); border-bottom: 2px solid var(--yellow-border); border-radius: 3px; font-weight: 750; }
+html[data-theme="dark"] .placeholder { color: #fff5bd; }
+.editable-placeholder { display: inline-block; min-width: 8.5em; min-height: 1.65em; padding: .08em .38em; color: #392c00; background: var(--yellow); border: 1px solid var(--yellow-border); border-radius: 4px; font-weight: 650; vertical-align: baseline; cursor: text; }
+.editable-placeholder:empty::before { content: "Enter value"; color: #77671e; font-weight: 500; }
+.editable-placeholder:focus { outline: 3px solid color-mix(in srgb, var(--yellow-border) 32%, transparent); border-color: #8b6d00; }
+html[data-theme="dark"] .editable-placeholder { color: #fff5bd; }
+.record-editable-cell { cursor: text; transition: background-color .15s ease, box-shadow .15s ease; }
+.record-mode .record-editable-cell { background: color-mix(in srgb, var(--yellow) 34%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--yellow-border) 48%, transparent); }
+.record-editable-cell:focus { outline: 3px solid color-mix(in srgb, var(--blue) 28%, transparent); outline-offset: -3px; }
+.risk-assessment-table { min-width: 1480px; }
+.risk-assessment-table th:nth-child(n+5):nth-child(-n+10), .risk-assessment-table td:nth-child(n+5):nth-child(-n+10) { min-width: 72px; text-align: center; vertical-align: middle; }
+.risk-input { min-width: 2.2em; text-align: center; }
+.risk-input[aria-invalid="true"] { color: #8b1d2c; border-color: #b42336; background: #ffd9df; }
+.risk-score-output { min-width: 2.2em; color: inherit !important; background: transparent !important; border: 0 !important; cursor: default; }
+.risk-score-output:empty::before { content: none; }
+.risk-score-cell { font-weight: 800; text-align: center; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.risk-unrated { color: #392c00 !important; background: #fff1a8 !important; }
+.risk-very-low { color: #fff !important; background: #00b050 !important; }
+.risk-low { color: #000 !important; background: #92d050 !important; }
+.risk-medium { color: #000 !important; background: #ffff00 !important; }
+.risk-medium-high { color: #000 !important; background: #ffc000 !important; }
+.risk-high { color: #fff !important; background: #ff0000 !important; }
+.risk-very-high { color: #fff !important; background: #c00000 !important; }
+.risk-legend-table tbody tr:nth-child(1) td:first-child { color: #fff; background: #00b050; }
+.risk-legend-table tbody tr:nth-child(2) td:first-child { color: #000; background: #92d050; }
+.risk-legend-table tbody tr:nth-child(3) td:first-child { color: #000; background: #ffff00; }
+.risk-legend-table tbody tr:nth-child(4) td:first-child { color: #000; background: #ffc000; }
+.risk-legend-table tbody tr:nth-child(5) td:first-child { color: #fff; background: #ff0000; }
+.risk-legend-table tbody tr:nth-child(6) td:first-child { color: #fff; background: #c00000; }
+.risk-legend-table td:first-child { font-weight: 800; text-align: center; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.record-mode .task-checkbox { pointer-events: auto; }
+.search-hit { padding: .02em .08em; background: #8ed8ff; color: #0a2638; border-radius: 2px; }
+.task-checkbox { width: 15px; height: 15px; vertical-align: -2px; accent-color: var(--blue); }
+.document-footer { display: flex; justify-content: space-between; padding: 15px 38px; color: var(--muted); background: var(--surface-2); border-top: 1px solid var(--line); font-size: 10px; letter-spacing: .04em; text-transform: uppercase; }
+.toc-panel { position: sticky; top: 104px; padding: 5px 0; color: var(--muted); font-size: 12px; }
+.toc-panel > p { margin: 0 0 8px; color: var(--ink); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.toc-panel a { display: block; margin: 1px 0; padding: 5px 8px; color: var(--muted); border-left: 2px solid var(--line); text-decoration: none; line-height: 1.3; }
+.toc-panel a:hover { color: var(--blue); border-left-color: var(--blue); }
+.toc-panel a.level-3 { padding-left: 18px; font-size: 11px; }
+
+.search-results { max-width: 1080px; margin: 0 auto; padding: 30px 38px 70px; }
+.results-heading { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 20px; }
+.text-button { padding: 7px 11px; color: var(--blue); border-color: var(--line-strong); }
+.result-card { display: block; width: 100%; margin-bottom: 10px; padding: 16px 18px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; text-align: left; cursor: pointer; box-shadow: 0 3px 10px rgba(11,29,52,.04); }
+.result-card:hover { border-color: var(--blue); }
+.result-card strong { color: var(--navy-2); }
+html[data-theme="dark"] .result-card strong { color: var(--ink); }
+.result-card small { margin-left: 8px; color: var(--muted); }
+.result-card p { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+.empty-state { padding: 35px; color: var(--muted); background: var(--surface); border: 1px dashed var(--line-strong); border-radius: 8px; text-align: center; }
+.fatal-error { margin: 100px auto; max-width: 700px; padding: 20px; background: #fff3bf; }
+
+@media (max-width: 1120px) {
+  .document-layout { grid-template-columns: minmax(0, 820px); }
+  .toc-panel { display: none; }
+}
+
+@media (max-width: 820px) {
+  .menu-button { display: inline-grid; place-items: center; }
+  .sidebar { transform: translateX(-102%); transition: transform .2s ease; box-shadow: var(--shadow); }
+  body.nav-open .sidebar { transform: none; }
+  .sidebar-scrim { position: fixed; z-index: 14; inset: 66px 0 0; width: 100%; height: auto; border: 0; background: rgba(4,12,22,.55); }
+  body.nav-open .sidebar-scrim { display: block; }
+  .workspace { margin-left: 0; }
+  .document-layout { padding: 18px 14px 50px; }
+  .draft-banner { padding: 8px 15px; }
+  .draft-banner span { display: none; }
+  .document-header { padding: 25px 23px 20px; }
+  .record-toolbar { padding: 12px 23px; }
+  .document-content { padding: 25px 23px 35px; }
+  .document-footer { padding: 13px 23px; }
+  .search-results { padding: 22px 16px 50px; }
+}
+
+@media (max-width: 560px) {
+  .topbar { padding: 0 12px; }
+  .brand strong { font-size: 14px; }
+  .brand small { font-size: 9px; }
+  .brand-mark { width: 31px; height: 31px; }
+  .print-button { display: none; }
+  .document-header { display: block; }
+  .metadata { margin-top: 18px; grid-template-columns: auto 1fr; }
+  .metadata dd { text-align: left; }
+  .document-content { font-size: 14px; }
+  .results-heading { align-items: start; }
+}
+
+@media print {
+  :root { color-scheme: light; --ink: #000; --muted: #444; --line: #bbb; --surface: #fff; --surface-2: #f3f3f3; }
+  body { background: #fff; font-size: 10pt; }
+  .topbar, .sidebar, .sidebar-scrim, .draft-banner, .toc-panel, .search-results { display: none !important; }
+  .record-toolbar { display: none !important; }
+  .workspace { margin: 0; padding: 0; }
+  .document-layout { display: block; padding: 0; }
+  .document-card { border: 0; border-radius: 0; box-shadow: none; }
+  .document-header { padding: 0 0 18px; border-bottom: 2px solid #111; }
+  .document-content { padding: 18px 0 0; }
+  .document-content h2, .document-content h3 { break-after: avoid; color: #000; }
+  .table-wrap { overflow: visible; border-color: #999; break-inside: auto; }
+  .document-content tr { break-inside: avoid; }
+  .document-content a { color: #000; text-decoration: none; }
+  .document-footer { margin-top: 20px; padding: 10px 0; }
+  .placeholder { color: #000 !important; background: #fff2a8 !important; border-color: #aa8700; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  @page { size: A4; margin: 16mm 15mm 17mm; }
+}
+
+</style>
+</head>
+<body>
+  <a class="skip-link" href="#document">Skip to document</a>
+  <div class="app-shell">
+    <header class="topbar">
+      <button class="icon-button menu-button" id="menuButton" type="button" aria-label="Open document navigation" aria-expanded="false">☰</button>
+      <a class="brand" href="#CWP-000" aria-label="CWPS home">
+        <span class="brand-mark" aria-hidden="true">E</span>
+        <span><strong>Europlan CWPS</strong><small>SC021 &amp; SC038</small></span>
+      </a>
+      <div class="topbar-actions">
+        <button class="icon-button" id="themeButton" type="button" aria-label="Switch color theme">◐</button>
+        <button class="print-button" id="printButton" type="button">Print document</button>
+      </div>
+    </header>
+
+    <aside class="sidebar" id="sidebar" aria-label="Document navigation">
+      <div class="sidebar-head">
+        <label for="searchInput">Search package</label>
+        <div class="search-box">
+          <span aria-hidden="true">⌕</span>
+          <input id="searchInput" type="search" placeholder="Title, ID or document text" autocomplete="off">
+          <kbd>/</kbd>
+        </div>
+        <p class="package-meta"><span id="documentCount">0 documents</span><span id="placeholderCount">0 open items</span></p>
+      </div>
+      <nav id="documentNav"></nav>
+      <footer class="sidebar-footer">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>Offline package<br><small>Revision C1 · Draft</small></span>
+      </footer>
+    </aside>
+
+    <button class="sidebar-scrim" id="sidebarScrim" type="button" aria-label="Close document navigation"></button>
+
+    <main class="workspace">
+      <section class="draft-banner" role="status">
+        <strong>Draft for coordinated review</strong>
+        <span>Not Approved for Construction. Yellow items require resolution.</span>
+      </section>
+
+      <section class="search-results" id="searchResults" aria-live="polite" hidden>
+        <div class="results-heading">
+          <div><span class="eyebrow">Full-text search</span><h1 id="resultsTitle">Search results</h1></div>
+          <button class="text-button" id="clearSearch" type="button">Clear search</button>
+        </div>
+        <div id="resultsList"></div>
+      </section>
+
+      <div class="document-layout" id="documentLayout">
+        <article class="document-card" id="document" tabindex="-1">
+          <header class="document-header">
+            <div>
+              <span class="eyebrow" id="docCategory">Project Control</span>
+              <h1 id="docTitle">Loading package…</h1>
+            </div>
+            <dl class="metadata" id="docMetadata"></dl>
+          </header>
+          <section class="record-toolbar" id="recordToolbar" aria-label="Editable record controls" hidden>
+            <div class="record-actions">
+              <button type="button" id="editRecordButton">Edit yellow items</button>
+              <button type="button" id="saveDraftButton">Save draft</button>
+              <button type="button" id="downloadRecordButton">Download JSON</button>
+              <button type="button" id="downloadHtmlButton">Download copy</button>
+              <button type="button" id="openRecordButton">Open saved record</button>
+              <button type="button" id="importFeedbackButton">Import feedback JSON</button>
+              <button type="button" id="clearRecordButton" class="danger-button">Clear entries</button>
+              <input id="recordFileInput" type="file" accept="application/json,.json" hidden>
+              <input id="feedbackFileInput" type="file" accept="application/json,.json" multiple hidden>
+            </div>
+            <p class="record-status" id="recordStatus" role="status">Yellow edits are record-specific and do not change the Markdown master.</p>
+          </section>
+          <div class="document-content" id="documentContent">
+            <p>Preparing the offline documentation package.</p>
+          </div>
+          <footer class="document-footer">
+            <span>Europlan Construction Work Package System</span>
+            <span id="docFooterId"></span>
+          </footer>
+        </article>
+        <aside class="toc-panel" aria-label="On this page">
+          <p>On this page</p>
+          <nav id="tableOfContents"></nav>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <noscript><p class="fatal-error">JavaScript is required to use the offline CWPS viewer. The mobile viewer requires JavaScript.</p></noscript>
+  <script>
+(() => {
+  "use strict";
+
+  const bands = Object.freeze([
+    Object.freeze({ scores: Object.freeze([1, 2, 3]), className: "risk-very-low", label: "Very Low", colour: "#00b050" }),
+    Object.freeze({ scores: Object.freeze([4, 5, 6, 8, 9]), className: "risk-low", label: "Low", colour: "#92d050" }),
+    Object.freeze({ scores: Object.freeze([10, 12]), className: "risk-medium", label: "Medium", colour: "#ffff00" }),
+    Object.freeze({ scores: Object.freeze([15, 16]), className: "risk-medium-high", label: "Medium to High", colour: "#ffc000" }),
+    Object.freeze({ scores: Object.freeze([20]), className: "risk-high", label: "High", colour: "#ff0000" }),
+    Object.freeze({ scores: Object.freeze([25]), className: "risk-very-high", label: "Very High", colour: "#c00000" })
+  ]);
+
+  function parseRating(value) {
+    const text = String(value ?? "").trim();
+    return /^[1-5]$/.test(text) ? Number.parseInt(text, 10) : null;
+  }
+
+  function calculate(likelihood, impact) {
+    const lValue = parseRating(likelihood);
+    const iValue = parseRating(impact);
+    return lValue === null || iValue === null ? null : lValue * iValue;
+  }
+
+  function bandForScore(score) {
+    return bands.find((band) => band.scores.includes(score)) || null;
+  }
+
+  window.CWPS_RISK = Object.freeze({ bands, parseRating, calculate, bandForScore });
+})();
+
+</script>
+  <script>
+/* Generated from manifest.json and Markdown masters. Do not edit directly. */
+window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package System","project":"SC021 & SC038","location":"Sumitomo Cable Factory, Nigg, Scotland","revision":"C1","status":"Draft for coordinated review","updated":"2026-08-04","notice":"Not Approved for Construction. Yellow placeholders are unresolved actions.","documents":[{"id":"CWP-000","title":"Document Register and Package Index","revision":"C1","status":"Draft","category":"Project Control","path":"docs/00_Project_Control/CWP-000_RevC1_Document_Register.md"},{"id":"HPR-001","title":"Interface and Hold Point Register","revision":"C1","status":"Draft","category":"Project Control","path":"docs/00_Project_Control/HPR-001_RevC1_Interface_Hold_Point_Register.md"},{"id":"RCR-001","title":"Reviewer Comment Closeout Register","revision":"C1","status":"Draft","category":"Project Control","path":"docs/00_Project_Control/RCR-001_RevC1_Reviewer_Comment_Closeout_Register.md"},{"id":"DRG-001","title":"Drawing and Room Register","revision":"C1","status":"Draft","category":"Project Control","path":"docs/00_Project_Control/DRG-001_RevC1_Drawing_and_Room_Register.md"},{"id":"MS-001","title":"Method Statement","revision":"C1","status":"Draft","category":"Method Statement","path":"docs/01_Method_Statement/MS-001_RevC1_Method_Statement.md"},{"id":"RA-001","title":"Project Risk Assessment","revision":"C1","status":"Draft","category":"Risk Assessment","path":"docs/02_Risk_Assessment/RA-001_RevC1_Project_Risk_Assessment.md"},{"id":"PHP-001","title":"Panel Handling Procedure","revision":"C1","status":"Draft","category":"Safe Systems of Work","path":"docs/03_Safe_Systems_of_Work/PHP-001_RevC1_Panel_Handling_Procedure.md"},{"id":"MHP-001","title":"Manual Handling Procedure","revision":"C1","status":"Draft","category":"Safe Systems of Work","path":"docs/03_Safe_Systems_of_Work/MHP-001_RevC1_Manual_Handling_Procedure.md"},{"id":"LOP-001","title":"Lifting Operations Procedure","revision":"C1","status":"Draft","category":"Safe Systems of Work","path":"docs/03_Safe_Systems_of_Work/LOP-001_RevC1_Lifting_Operations_Procedure.md"},{"id":"WAH-001","title":"Working at Height Procedure","revision":"C1","status":"Draft","category":"Safe Systems of Work","path":"docs/03_Safe_Systems_of_Work/WAH-001_RevC1_Working_at_Height_Procedure.md"},{"id":"ERP-001","title":"Emergency and Rescue Procedure","revision":"C1","status":"Draft","category":"Safe Systems of Work","path":"docs/03_Safe_Systems_of_Work/ERP-001_RevC1_Emergency_Rescue_Procedure.md"},{"id":"PTW-001","title":"Permit to Work Procedure","revision":"C1","status":"Draft","category":"Safe Systems of Work","path":"docs/03_Safe_Systems_of_Work/PTW-001_RevC1_Permit_to_Work_Procedure.md"},{"id":"TSP-001","title":"Temporary Stability Procedure","revision":"C1","status":"Draft","category":"Temporary Works","path":"docs/04_Temporary_Works/TSP-001_RevC1_Temporary_Stability_Procedure.md"},{"id":"ITP-001","title":"Inspection and Test Plan","revision":"C1","status":"Draft","category":"Quality","path":"docs/05_Quality/ITP-001_RevC1_Inspection_Test_Plan.md"},{"id":"QCP-001","title":"Quality Control Plan","revision":"C1","status":"Draft","category":"Quality","path":"docs/05_Quality/QCP-001_RevC1_Quality_Control_Plan.md"},{"id":"CMP-001","title":"Component Weight and Handling Register","revision":"C1","status":"Draft","category":"Registers","path":"docs/06_Registers/CMP-001_RevC1_Component_Weight_and_Handling_Register.md"},{"id":"TRN-001","title":"Competence and Training Register","revision":"C1","status":"Draft","category":"Registers","path":"docs/06_Registers/TRN-001_RevC1_Competence_and_Training_Register.md"},{"id":"PLT-001","title":"Plant, PAT and Lifting Equipment Register","revision":"C1","status":"Draft","category":"Registers","path":"docs/06_Registers/PLT-001_RevC1_Plant_PAT_and_Lifting_Equipment_Register.md"},{"id":"COS-001","title":"COSHH and SDS Register","revision":"C1","status":"Draft","category":"Registers","path":"docs/06_Registers/COS-001_RevC1_COSHH_and_SDS_Register.md"},{"id":"PER-001","title":"Permit Register and Authorisation Matrix","revision":"C1","status":"Draft","category":"Registers","path":"docs/06_Registers/PER-001_RevC1_Permit_Register_and_Authorisation_Matrix.md"},{"id":"FRM-001","title":"Daily POWRA Form","revision":"C1","status":"Draft","category":"Forms","path":"docs/07_Forms/FRM-001_RevC1_Daily_POWRA_Form.md"},{"id":"FRM-002","title":"Material Acceptance Form","revision":"C1","status":"Draft","category":"Forms","path":"docs/07_Forms/FRM-002_RevC1_Material_Acceptance_Form.md"},{"id":"FRM-003","title":"Temporary Stability Inspection Form","revision":"C1","status":"Draft","category":"Forms","path":"docs/07_Forms/FRM-003_RevC1_Temporary_Stability_Inspection_Form.md"},{"id":"FRM-004","title":"Hold Point Release Form","revision":"C1","status":"Draft","category":"Forms","path":"docs/07_Forms/FRM-004_RevC1_Hold_Point_Release_Form.md"},{"id":"FRM-005","title":"NCR and Corrective Action Form","revision":"C1","status":"Draft","category":"Forms","path":"docs/07_Forms/FRM-005_RevC1_NCR_and_Corrective_Action_Form.md"},{"id":"SIR-001","title":"Source Information Register","revision":"C1","status":"Draft","category":"References","path":"docs/08_References/SIR-001_RevC1_Source_Information_Register.md"}]},"documents":{"docs/00_Project_Control/CWP-000_RevC1_Document_Register.md":"# CWP-000 Rev C1 - Document Register and Package Index\n\n**Project:** SC021 & SC038 - Cleanroom and Modular Room Installation  \n**Location:** Sumitomo Cable Factory, Nigg, Scotland  \n**Status:** Draft for coordinated review  \n**Authoritative metadata:** `manifest.json`\n\n## Package status\n\nThis package is a controlled draft. It is not Approved for Construction. Documents may be used for planning and review only until their metadata shows the required approval.\n\n`YELLOW PLACEHOLDER`: Insert verified preparer, checker, approver, issue date, transmittal, and client acceptance.\n\n## Document register\n\n| ID | Title | Category | Rev | Status |\n|---|---|---|---|---|\n| CWP-000 | Document Register and Package Index | Project Control | C1 | Draft |\n| HPR-001 | Interface and Hold Point Register | Project Control | C1 | Draft |\n| RCR-001 | Reviewer Comment Closeout Register | Project Control | C1 | Draft |\n| DRG-001 | Drawing and Room Register | Project Control | C1 | Draft |\n| MS-001 | Method Statement | Method Statement | C1 | Draft |\n| RA-001 | Project Risk Assessment | Risk Assessment | C1 | Draft |\n| PHP-001 | Panel Handling Procedure | Safe Systems of Work | C1 | Draft |\n| MHP-001 | Manual Handling Procedure | Safe Systems of Work | C1 | Draft |\n| LOP-001 | Lifting Operations Procedure | Safe Systems of Work | C1 | Draft |\n| WAH-001 | Working at Height Procedure | Safe Systems of Work | C1 | Draft |\n| ERP-001 | Emergency and Rescue Procedure | Safe Systems of Work | C1 | Draft |\n| PTW-001 | Permit to Work Procedure | Safe Systems of Work | C1 | Draft |\n| TSP-001 | Temporary Stability Procedure | Temporary Works | C1 | Draft |\n| ITP-001 | Inspection and Test Plan | Quality | C1 | Draft |\n| QCP-001 | Quality Control Plan | Quality | C1 | Draft |\n| CMP-001 | Component Weight and Handling Register | Registers | C1 | Draft |\n| TRN-001 | Competence and Training Register | Registers | C1 | Draft |\n| PLT-001 | Plant, PAT and Lifting Equipment Register | Registers | C1 | Draft |\n| COS-001 | COSHH and SDS Register | Registers | C1 | Draft |\n| PER-001 | Permit Register and Authorisation Matrix | Registers | C1 | Draft |\n| FRM-001 | Daily POWRA Form | Forms | C1 | Draft |\n| FRM-002 | Material Acceptance Form | Forms | C1 | Draft |\n| FRM-003 | Temporary Stability Inspection Form | Forms | C1 | Draft |\n| FRM-004 | Hold Point Release Form | Forms | C1 | Draft |\n| FRM-005 | NCR and Corrective Action Form | Forms | C1 | Draft |\n| SIR-001 | Source Information Register | References | C1 | Draft |\n\n## Control rules\n\n- `manifest.json` is the canonical viewer register; this table must remain synchronised.\n- Source DOCX, PDF, and DWG files are preserved unchanged under `attachments/references/` and `attachments/drawings/`.\n- Markdown files are the engineering masters for the CWPS controlled drafts.\n- A yellow placeholder is an open action, not an approved assumption.\n- Revision or status changes require a recorded checker/approver and changelog entry.\n\n","docs/00_Project_Control/HPR-001_RevC1_Interface_Hold_Point_Register.md":"# HPR-001 Rev C1 - Interface and Hold Point Register\n\n**Status:** Draft  \n**Purpose:** Define scope interfaces, mandatory pauses, release evidence, and authority.\n\n## Scope interfaces\n\n| Activity | Responsible party | Europlan CWP boundary | Required interface record |\n|---|---|---:|---|\n| Delivery to site | Other subcontractor | No | Separate RAMS/transmittal |\n| Offloading | Other subcontractor | No | Separate RAMS/handover |\n| Transport to workface | Other subcontractor | No | Workface handover |\n| Material acceptance at workface | Europlan | Yes | FRM-002 |\n| Setting out and installation | Europlan | Yes | Survey/checklists |\n| Temporary stability | Europlan within approved design | Yes | FRM-003 |\n| Electrical testing/energisation | `YELLOW PLACEHOLDER` | Interface | Isolation/test record |\n| Commissioning | Separate unless instructed | No | Separate approved RAMS |\n\n## Hold points\n\n| Ref | Hold point | Acceptance evidence | Release authority | Record |\n|---|---|---|---|---|\n| HP-01 | Current approved drawings available | Drawing register and workface set | `YELLOW PLACEHOLDER` | FRM-004 |\n| HP-02 | Workface, grid and room position accepted | Survey/setting-out record | `YELLOW PLACEHOLDER` | FRM-004 |\n| HP-03 | Substrate and base frame accepted | Level, line, fixings and tolerance check | `YELLOW PLACEHOLDER` | FRM-004 |\n| HP-04 | Temporary Stability System installed | Approved sketch plus inspection | TWC/TWS `YELLOW PLACEHOLDER` | FRM-003/004 |\n| HP-05 | Lower stacked panels stable | Restraint and joint inspection | Supervisor/TWS | FRM-004 |\n| HP-06 | Ceiling grid, beams and trusses accepted | ITP inspection and design checks | `YELLOW PLACEHOLDER` | FRM-004 |\n| HP-07 | FFU, AHU, light and duct interfaces accepted | Coordinated drawing/interface checklist | `YELLOW PLACEHOLDER` | FRM-004 |\n| HP-08 | Electrical interface ready | Isolation, inspection and test evidence | Electrical competent person `YELLOW PLACEHOLDER` | FRM-004 |\n| HP-09 | Concealed work accepted | Pre-concealment inspection | QA/client `YELLOW PLACEHOLDER` | FRM-004 |\n| HP-10 | Final inspection complete | Snag closeout and completion record | `YELLOW PLACEHOLDER` | FRM-004 |\n\n## Unplanned hold/stop-work triggers\n\nStop the affected work immediately for a room-position or height discrepancy, structural/substrate variance, service clash, design change, changed sequence, damaged or unidentified material, unavailable restraint, temporary-works change, unsafe handling, lift-plan deviation, missing permit, or uncontrolled SIMOPS.\n\nRestart requires the applicable design resolution, revised drawing/RAMS/POWRA, temporary-works or lift-plan review, permit update, and signed FRM-004 release. Verbal instruction alone is not release evidence.\n\n`YELLOW PLACEHOLDER`: Confirm client notification periods, witness requirements, acceptance tolerances, and named release authorities.\n\n","docs/00_Project_Control/RCR-001_RevC1_Reviewer_Comment_Closeout_Register.md":"# RCR-001 Rev C1 - Reviewer Comment Closeout Register\n\n**Status:** Draft  \n**Source:** Review comments associated with Rev B RAMS.\n\n| Ref | Reviewer concern | CWPS response | Evidence/document | Status |\n|---|---|---|---|---|\n| RC-01 | Document date and Autodesk issue history | Source history recorded; transmittal still required | SIR-001 | Open |\n| RC-02 | Hold points and POWRA on change | Stop/restart logic and release form added | HPR-001, MS-001, FRM-001/004 | Draft response |\n| RC-03 | Named responsible persons | Duty-holder matrix added | MS-001, TRN-001 | Open - names required |\n| RC-04 | ECITB/IPAF/PASMA and training evidence | Role-based competence register added | TRN-001 | Open - evidence required |\n| RC-05 | PAT testing and tool controls | Plant/PAT register and procedure controls added | PLT-001, RA-001 | Draft response |\n| RC-06 | LOLER register and lift plans | Equipment register and lifting procedure added | LOP-001, PLT-001 | Open where equipment used |\n| RC-07 | Temporary topple restraint | Temporary Stability System procedure and inspection added | TSP-001, FRM-003 | Open - design/sketch required |\n| RC-08 | Missing component weights | Component register created; vendor truss data noted | CMP-001 | Open - incomplete weights |\n| RC-09 | BS/EN and product conformance | Verification requirement added; no standards assumed | QCP-001, ITP-001 | Open - certificates required |\n| RC-10 | Harness/PPE/COSHH | Task assessment, SDS and rescue prerequisites added | WAH-001, COS-001, RA-001 | Open - product data required |\n| RC-11 | Permit requirements and hot work/cutting | Permit register and task controls added | PTW-001, PER-001, RA-001 | Draft response |\n| RC-12 | Rescue from height | Task-specific rescue requirements added | ERP-001, WAH-001 | Open - rescue plan/equipment |\n| RC-13 | No live electrical work | Prohibition and LOTO boundary stated | MS-001, RA-001 | Draft response |\n| RC-14 | Installation standards | Source/applicability verification required | QCP-001, SIR-001 | Open - competent confirmation |\n| RC-15 | Training certificates and room-location drawing | Registers and drawing set imported | TRN-001, DRG-001 | Open - verification/approval |\n| RC-16 | Risk Assessment update | Project-specific coordinated draft added | RA-001 | Draft response |\n\n`YELLOW PLACEHOLDER`: Add reviewer name, formal comment references, closeout evidence, acceptance signature, and date.\n\n","docs/00_Project_Control/DRG-001_RevC1_Drawing_and_Room_Register.md":"# DRG-001 Rev C1 - Drawing and Room Register\n\n**Status:** Draft source register - approval and supersession checks outstanding.\n\n## Site layouts\n\n| Drawing | Title/coverage | Date | Supplied status | CWPS use |\n|---|---|---|---|---|\n| S264-EDA-MF-00-DR-AR-11301 | Factory layout grids 1-21 | 04-02-2025 | S4 | Location reference only |\n| S264-EDA-MF-00-DR-AR-11302 | Factory layout grids 21-38 | 04-02-2025 | S4 | Location reference only |\n| S264-EDA-MF-00-DR-AR-11303 | Factory layout grids 38-52 | 04-02-2025 | S4 | Location reference only |\n\nThe layouts identify the CCV Building, onsite Rooms A/B/C, FJ Room, and Cable Connection Test Room. S4 must not be treated as Approved for Construction until the project status code and current issue are confirmed.\n\n## SC021 vendor assembly packs\n\n| Area | File | Production number | Dates observed | Status |\n|---|---|---|---|---|\n| GF | Assembly Drawing for GF with Truss.pdf | GHD251026-01 | 27-12-2025; truss 04-03-2026 | `YELLOW PLACEHOLDER` |\n| F1/FF | Assembly Drawing for F1(FF) with Truss.pdf | GHD251026-03 | Multiple 2025/2026 dates | `YELLOW PLACEHOLDER` |\n| F2/SF | Assembly Drawing for F2(SF) with Truss.pdf | GHD251026-05 | 11-02-2026; 23-03-2026 | `YELLOW PLACEHOLDER` |\n\n## SC038 vendor assembly packs\n\n| Supplied room label | File | Production number (where legible) | Mapping/status |\n|---|---|---|---|\n| A&B | Assembly Drawing for SC038- ROOM A&B with Truss.pdf | GHD251237 | `YELLOW PLACEHOLDER` |\n| C | Assembly Drawing for SC038- ROOM C with Truss.pdf | GHD251237-3 | `YELLOW PLACEHOLDER` |\n| FJ | Assembly Drawing for SC038- ROOM FJ with Truss.pdf | GHD251237 | Confirm FJ/FJA mapping |\n| LPR | Assembly Drawing for SC038- ROOM LPR.PDF | GHD251237-3/06 shown inconsistently | `YELLOW PLACEHOLDER` |\n| WC-LEFT | Assembly Drawing for SC038- ROOM WC-LEFT.pdf | `YELLOW PLACEHOLDER` | Confirm toilet-block mapping |\n| WC01-RIGHT | Assembly Drawing for SC038- ROOM WC01-RIGHT.PDF | GHD160719 shown | Confirm toilet-block mapping |\n| WC02 | Assembly Drawing for SC038- ROOM WC02.PDF | `YELLOW PLACEHOLDER` | Confirm toilet-block mapping |\n| CCT | CCT Room Assembly Drawing.pdf | GHD251237 | Confirm current revision/status |\n| DC | DC Room Assembly drawings.pdf | Drawing fields show YRX; production number unclear | Drain Collection room; confirm current revision/status |\n| LRP alias | LRP Room Assembly Drawing.pdf (duplicate not separately retained) | Same bytes and SHA-256 as retained LPR pack | Content says LPR; resolve naming alias |\n\n## CAD source\n\n`ec47426dfe05da2d093f7939a013192d.dwg` is not included in this audience distribution and remains preserved in the controlled master package. Its descriptive title, native metadata, revision, approval status, and relationship to the PDFs are unknown.\n\n## Required reconciliation\n\nThe Rev B Method Statement lists A+B, C, CCT, FJA, LPR, DC, Toilet Blocks 01-05 and other designations. CCT and DC now have supplied packs; Toilet Blocks 03-05 still lack an obvious matching filename. Do not infer mappings from similar names. The LRP file is an exact duplicate of the LPR source and its pages say LPR. Create a signed room matrix linking contract room ID, location grid, approved layout, assembly pack, production number, installation sequence, and handover record.\n","docs/01_Method_Statement/MS-001_RevC1_Method_Statement.md":"# MS-001 Rev C1 - Method Statement\n\n**Project:** SC021 & SC038 - Cleanroom and Modular Room Installation  \n**Status:** Draft for coordinated review  \n**Based on:** Rev B RAMS, supplied layouts, Airkey assembly packs, and Castle installation manual.\n\n**Formatted C1 issue dated 04/08/2026:** [Editable Word document](attachments/output/docx/MS-001_RevC1_Method_Statement_2026-08-04.docx) | [Rendered PDF](attachments/output/pdf/MS-001_RevC1_Method_Statement_2026-08-04.pdf)\n\n`YELLOW PLACEHOLDER`: Insert verified preparer, checker, approver, issue date, named duty holders, current approved drawing set, and acceptance signatures.\n\n## 1. Purpose\n\nDefine Europlan's safe sequence for installing SC021 cleanrooms and SC038 modular rooms after accepted materials are available at the workface.\n\n## 2. Scope and exclusions\n\nIncluded where shown by current approved information: setting out; base frames; columns; rockwool wall panels; doors, windows and openings; edge beams; ceiling grids and panels; trusses; FFUs; AHU/duct/light interfaces; flooring; and vendor pre-wired interconnections under isolation.\n\nDelivery, offloading, and transport to the workface are by others under separate RAMS. Commissioning and energisation are excluded unless separately instructed and supported by approved documents.\n\n## 3. Applicable information\n\nRead this method with RA-001, HPR-001, the ITP/QCP, project HSE arrangements, approved drawings, manufacturer instructions, temporary-works designs, permits, COSHH assessments, lift plans where equipment is used, and current POWRA.\n\nThe supplied S4 layouts and vendor packs are source information, not automatic construction approval. DRG-001 must identify the current accepted issue before setting out.\n\n## 4. Roles and authority\n\n| Role | Minimum responsibility | Named person |\n|---|---|---|\n| Project Manager | Resources, coordination, approved information | `YELLOW PLACEHOLDER` |\n| Site Supervisor | Briefing, sequencing, permits, stop/restart control | `YELLOW PLACEHOLDER` |\n| H&S Adviser | RAMS assurance and monitoring | `YELLOW PLACEHOLDER` |\n| TWC/TWS | Temporary Stability System control | `YELLOW PLACEHOLDER` |\n| Lifting AP/Supervisor | Lift planning/control when applicable | `YELLOW PLACEHOLDER` |\n| Electrical competent person | Isolation, proving dead, inspection/testing boundary | `YELLOW PLACEHOLDER` |\n| QA/QC inspector | ITP evidence, NCR and handover | `YELLOW PLACEHOLDER` |\n| Operatives | Follow briefing, inspect equipment, stop unsafe work | See TRN-001 |\n\n## 5. Pre-start requirements\n\n1. Confirm induction, competence, task briefing, permits, emergency arrangements, and daily FRM-001 POWRA.\n2. Verify the room ID, approved drawing/production number, grid position, dimensions, sequence, and interfaces against DRG-001.\n3. Accept the workface and received materials using FRM-002; quarantine damage or unidentified items.\n4. Verify component weights/handling methods in CMP-001 and plant status in PLT-001.\n5. Confirm approved Temporary Stability System drawings, restraint points, inspections, and removal criteria.\n6. Coordinate SIMOPS, access, exclusion zones, laydown, escape routes, lighting, and housekeeping.\n7. Release HP-01 and HP-02 before installation.\n\n## 6. Installation sequence\n\n### 6.1 Setting out and base frames\n\n- Establish survey control and mark the approved room footprint.\n- Check substrate, services, level, line, openings, interfaces, and fixing suitability.\n- Assemble, level, join, and fix base frames to the approved drawing and manufacturer detail.\n- Record tolerances and release HP-03 before erecting panels.\n\n### 6.2 Columns and wall panels\n\n- Confirm each panel's label, thickness, fire/core classification, height, orientation, and verified handling method.\n- F1/FF drawings show both 50 mm panels and 75 mm fire panels; use the room-specific approved schedule.\n- Inspect routes, suction grip aids, crew coordination, access equipment, and restraint before lifting.\n- Nominate one coordinator. Lift only on the agreed command and keep hands clear of pinch/crush zones.\n- Install progressively and connect the Temporary Stability System before releasing any panel.\n- Do not leave a partially erected wall unsupported.\n- For stacked walls, stabilise and inspect the lower tier before the upper tier. Confirm the actual horizontal joint from the approved drawing; do not assume one 7.5 m manually handled panel.\n\n### 6.3 Doors, windows, openings and edge beams\n\n- Confirm opening dimensions, handing, hardware, fire/emergency function, interface seals, and support.\n- Protect finishes and do not force misaligned components.\n- Record damage, deviation, or field modification through NCR/change control.\n\n### 6.4 Ceiling grid, panels and trusses\n\n- Release the supporting wall/edge-beam arrangement before loading the ceiling system.\n- Install main/sub-grid and trusses in the manufacturer sequence using approved access and handling/lifting methods.\n- Some vendor drawings state trusses precede ceiling panels; use the applicable room pack.\n- Verify truss labels, lengths, weights, fasteners, orientation, restraint, and design acceptance.\n- Do not load incomplete grids or use the Temporary Stability System as access/support.\n\n### 6.5 FFUs, lights, ducts and AHU interfaces\n\n- Coordinate openings and services against the approved reflected ceiling/interface information.\n- Protect filters and finishes; do not stand or walk on FFUs.\n- Use mechanical assistance where manual control cannot be maintained.\n- Interface changes require a hold point and design resolution; no uncontrolled site cutting.\n\n### 6.6 Electrical interfaces\n\n- No live electrical work is permitted under this package.\n- Apply project isolation/LOTO, identify conductors/services, prove dead, and control keys/tags.\n- Vendor pre-wired connections are completed only by an authorised competent person to the approved information.\n- Inspection and test evidence is required at HP-08 before energisation by the responsible party.\n\n### 6.7 Flooring, completion and handover\n\n- Install insulation/flooring only where included and supported by approved details.\n- Complete pre-concealment inspections, clean/protect work, close NCRs and snags, and compile records.\n- Release HP-09 and HP-10 before handover.\n\n## 7. Stop-work and restart\n\nStop for any HPR-001 trigger, including position/dimension conflict, service clash, unavailable restraint, unsafe handling, damaged material, design or sequence change, missing permit, lift-plan deviation, or uncontrolled interface.\n\nRestart only after the affected POWRA/RAMS/drawing/design/permit/lift or temporary-works information is revised as required and FRM-004 is signed by the authorised role.\n\n## 8. Records\n\nMaintain the current drawing set, briefings, POWRA, competence evidence, material acceptance, plant/equipment inspections, permits, temporary-stability inspections, hold-point releases, ITP checklists, test records, NCRs, and handover pack.\n","docs/02_Risk_Assessment/RA-001_RevC1_Project_Risk_Assessment.md":"# RA-001 Rev C1 - Project Risk Assessment\n\n**Status:** Draft - project-specific controls require verification and briefing  \n**Supersedes:** Generic Rev B only when formally approved.\n\n**Formatted C1 issue dated 04/08/2026:** [Editable Word document](attachments/output/docx/RA-001_RevC1_Project_Risk_Assessment_2026-08-04.docx) | [Rendered PDF](attachments/output/pdf/RA-001_RevC1_Project_Risk_Assessment_2026-08-04.pdf)\n\n`YELLOW PLACEHOLDER`: Insert assessor, checker, approving authority, assessment/review dates, named action owners, emergency details, and confirmation of current site rules.\n\n## Assessment method\n\nUse the project-approved likelihood and severity matrix. The provisional scores below must be validated; controls must reduce risk as low as reasonably practicable. A daily POWRA does not replace this assessment.\n\nEnter likelihood (L) and impact (I) from 1 to 5. The editable viewer calculates each score automatically and applies the following project legend:\n\n| Risk score | Rating | Required authorisation |\n|---:|---|---|\n| 1-3 | Very Low | Supervisors |\n| 4-9 | Low | Supervisors |\n| 10-12 | Medium | Managers |\n| 15-16 | Medium to High | Managers |\n| 20 | High | Directors |\n| 25 | Very High | Directors |\n\n| Ref | Activity/hazard | Persons exposed and potential harm | Required controls | Initial L | Initial I | Initial score | Residual L | Residual I | Residual score | Owner/record |\n|---|---|---|---|---:|---:|---:|---:|---:|---:|---|\n| RA-01 | Workface access, slips, trips and poor lighting | Operatives/others; strains, falls, impact | Controlled routes, housekeeping, adequate task lighting, segregated laydown and escape routes | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Supervisor/FRM-001 |\n| RA-02 | Unauthorised or changed room position/design | Installers/end users; structural/interface failure, rework | Current DRG-001 set, setting-out HP, stop/change/release process | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | PM/FRM-004 |\n| RA-03 | Manual handling by component | Crew; strain, crush, cuts, trapped fingers | Verified CMP-001 data, task assessment, clear route, coordinator, suitable grip/mechanical aid, exclusion zone | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Supervisor/CMP-001 |\n| RA-04 | Panel instability/topple | Crew/other trades; fatal crush injury | Approved Temporary Stability System, restraint before release, exclusion, inspection, no unsupported wall | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | TWC/TWS/FRM-003 |\n| RA-05 | Mechanical lifting/vacuum lifter | Crew/others; falling load, crush, equipment failure | Approved lift plan, AP/supervisor, LOLER evidence, SWL, pre-use checks, exclusion, communications | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | AP/LOP-001 |\n| RA-06 | Work at height/falling objects | Operatives/persons below; fall, fatality, dropped object | Hierarchy, suitable inspected access, collective protection, exclusion, tool control; fall arrest only with clearance/anchor/rescue | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Supervisor/WAH-001 |\n| RA-07 | Suspension after fall | Harness user; suspension trauma | Task rescue plan, trained rescuers, equipment, communication, prompt recovery/first aid | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Rescue lead/ERP-001 |\n| RA-08 | Incomplete ceiling grid/truss loading | Installers; collapse/fall | Approved sequence/design, component identification, temporary support, HP release, load limits | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Supervisor/ITP-001 |\n| RA-09 | FFU/light/duct/AHU installation | Crew; manual handling, dropped object, damage | Coordinated drawings, weight/handling plan, access, protection, no standing on FFUs | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Supervisor/CMP-001 |\n| RA-10 | Electrical interface and tools | Personnel; shock, arc, burns, fire | No live work, isolation/LOTO, prove dead, competent person, PAT/pre-use checks, quarantine damage | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Electrical competent person |\n| RA-11 | Cutting, drilling and grinding | Operatives/others; cuts, eye injury, dust, noise, fire | Avoid where possible; permit if applicable, service check, correct guarded tool/blade, extraction, PPE/RPE, fire control/watch | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Permit issuer/PER-001 |\n| RA-12 | COSHH products | Users/nearby persons; skin/eye/respiratory harm | Approved product, SDS/COSHH assessment, substitution, ventilation, hygiene, task PPE/RPE/face fit | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | COSHH owner/COS-001 |\n| RA-13 | Noise/vibration | Tool users/nearby persons; hearing loss, HAVS | Select low-exposure method, assess exposure, maintain tools, limit time, hearing protection/health surveillance as required | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Supervisor/PLT-001 |\n| RA-14 | Fire/hot work | Site occupants; burns, smoke, asset loss | Hot-work permit, combustibles removed/protected, suitable extinguisher, fire watch, alarm/escape maintained | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Permit issuer |\n| RA-15 | SIMOPS/other trades | All workface users; collision, conflicting controls | Coordination meeting, segregated zones, agreed sequence, shared emergency/access arrangements | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Site Manager |\n| RA-16 | Damaged/non-conforming components | Installers/end users; failure, injury, quality loss | Inspect at acceptance, quarantine, NCR, approved disposition and reinspection | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | QA/FRM-002/005 |\n| RA-17 | Emergency/evacuation | All persons; delayed rescue or exposure | Site alarm/contacts/assembly point, clear routes, trained first aid/fire roles, task rescue arrangements | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Supervisor/ERP-001 |\n\n## Dynamic review triggers\n\nStop and reassess after a design/drawing/sequence change, changed workface or personnel, new product/equipment, incident/near miss, control failure, service clash, temporary-works alteration, or lift-plan deviation. Record the outcome in FRM-001 and update this assessment where the change is material.\n\n## Approval and briefing\n\nNo activity may rely on this draft until its risk matrix, owners, project controls, permits, temporary works, rescue arrangements, and referenced evidence are confirmed and it is formally approved and briefed.\n","docs/03_Safe_Systems_of_Work/PHP-001_RevC1_Panel_Handling_Procedure.md":"# PHP-001 Rev C1 - Panel Handling Procedure\n\n**Status:** Draft  \n**Applies to:** Europlan handling and erection after workface acceptance.\n\n## Before handling\n\n- Match the panel label to the current room assembly drawing and CMP-001.\n- Confirm thickness, core/fire classification, dimensions, verified weight, centre of gravity, orientation and protective-film condition.\n- Inspect the panel, route, workface, crew, grip aids, access equipment and Temporary Stability System.\n- Establish an exclusion zone and nominate one lift coordinator.\n- Stop if the verified weight or safe handling method is unavailable.\n\n## Handling and erection\n\n1. Brief the route, commands, positions, rotation and emergency set-down point.\n2. Use suitable gloves and manufacturer-approved grip aids. Manual suction handles are grip aids only.\n3. Lift and move on one command; maintain visibility and neutral posture where practicable.\n4. Keep hands and feet clear of base channels, joints and other pinch/crush zones.\n5. Position the panel without uncontrolled twisting or forcing.\n6. Connect approved temporary restraint before any person releases the panel.\n7. Inspect joints, alignment, damage and restraint progressively.\n\nHigh walls are installed in the approved stacked sequence. Stabilise and release the lower tier before upper-panel work. Do not plan for a single manually handled 7.5 m panel.\n\n## Prohibitions\n\n- No unsupported or unattended partially erected wall.\n- No field modification without design/change approval.\n- No use of damaged, unidentified or non-conforming panels.\n- No reliance on protective film for suction attachment.\n- No crew-size assumption without verified component/task data.\n\n`YELLOW PLACEHOLDER`: Complete room-specific sequences, panel schedule, approved grip-aid instructions, set-down locations and exclusion-zone plans.\n\n","docs/03_Safe_Systems_of_Work/MHP-001_RevC1_Manual_Handling_Procedure.md":"# MHP-001 Rev C1 - Manual Handling Procedure\n\n**Status:** Draft\n\n## Assessment\n\nAssess each component/task using verified weight, dimensions, centre of gravity, stability, grip, posture, frequency, route, obstructions, installation height, environmental conditions, crew coordination and safe set-down options.\n\nUse mechanical assistance where safe manual control cannot be maintained. A whole-room weight is not a handling assessment.\n\n## Planning hierarchy\n\n1. Avoid unnecessary manual handling or pre-position the work.\n2. Reduce size/weight or change the sequence where design permits.\n3. Use suitable mechanical aids operated under the applicable controls.\n4. Plan a coordinated team lift only when it remains demonstrably safe.\n\n## Team handling\n\n- Nominate one coordinator and agree commands before contact with the load.\n- Match positions to the load and route; avoid sudden movements and uneven loading.\n- Maintain communication and stop immediately if any handler loses control.\n- Do not use generic crew numbers as proof that a lift is safe.\n\nThe seed guidance of approximately four operatives for some 4.0 m/3.5 m panels and six for a possible 5.5 m panel is provisional only. It must not be used until the actual component weight and task assessment are entered in CMP-001.\n\n## Records and hold points\n\nRecord the assessment/briefing, CMP-001 reference, crew/mechanical aid, route and deviations. Stop for missing weight data, drawing/sequence changes, damage, unavailable restraint, obstructed routes or loss of control.\n\n`YELLOW PLACEHOLDER`: Complete manufacturer-verified component weights and task-specific handling assessments.\n\n","docs/03_Safe_Systems_of_Work/LOP-001_RevC1_Lifting_Operations_Procedure.md":"# LOP-001 Rev C1 - Lifting Operations Procedure\n\n**Status:** Draft  \n**Applicability:** Cranes, hoists, powered vacuum lifters or other lifting equipment. Manual-only handling remains under MHP-001/PHP-001.\n\n## Mandatory prerequisites\n\n- Named competent Appointed Person and lift team.\n- Approved lift plan and task briefing.\n- Verified load identity, weight, centre of gravity, lifting points and travel path.\n- Suitable equipment/accessories with SWL/capacity, identification and current thorough-examination evidence in PLT-001.\n- Manufacturer instructions, ground/support conditions, exclusion zone, communications and emergency arrangements.\n- Applicable permit and coordinated SIMOPS.\n\n## Execution\n\nThe Lift Supervisor controls the operation. Complete pre-use checks, confirm rigging and trial lift where specified, maintain the exclusion zone, use the agreed signals, and keep personnel clear of suspended loads and equipment slew/travel zones.\n\nPowered vacuum lifting requires confirmed surface compatibility, capacity, power-loss warning/retention, pad condition, protective-film controls and contingency set-down arrangements.\n\n## Stop conditions\n\nStop for plan deviation, unidentified/changed load, equipment defect, lost communication, encroachment, unsuitable support/environment, unexpected load behaviour or any unsafe condition. Resume only after competent review and revised approval.\n\n`YELLOW PLACEHOLDER`: Insert project lifting duty holders, applicable lift plans, forms, equipment records, permit rules and accepted lifting standard references.\n\n","docs/03_Safe_Systems_of_Work/WAH-001_RevC1_Working_at_Height_Procedure.md":"# WAH-001 Rev C1 - Working at Height Procedure\n\n**Status:** Draft\n\n## Hierarchy and planning\n\nAvoid work at height where practicable; otherwise prevent falls using suitable collective protection before considering measures that minimise consequences.\n\nDefine room/task-specific access using approved MEWPs, towers, podiums or other suitable equipment. Ladder use requires task justification, short-duration/light work, firm support and control. Equipment must be inspected and used by competent persons.\n\n## Controls\n\n- Protect openings and establish exclusion zones below overhead work.\n- Control tools/materials against falling and maintain safe access/egress.\n- Do not stand or walk on FFUs.\n- Do not use the Temporary Stability System as access scaffold or an anchorage unless expressly designed and approved for that purpose.\n- Confirm ceiling/grid load and access limits before any access above or onto completed work.\n\n## Fall-restraint/arrest systems\n\nUse only where justified by assessment and where compatible harness, connector, lanyard/device, inspected anchorage, fall clearance, pendulum risk and rescue arrangements are adequate. Users and inspectors must be trained and evidence recorded in TRN-001.\n\nNo fall-arrest work starts without a task-specific rescue plan, available equipment, trained rescuers and communication. Calling emergency services is not the sole rescue plan.\n\n`YELLOW PLACEHOLDER`: Insert access drawings, equipment selections, anchor/clearance calculations, applicable equipment standards, inspection records and rescue plans.\n\n","docs/03_Safe_Systems_of_Work/ERP-001_RevC1_Emergency_Rescue_Procedure.md":"# ERP-001 Rev C1 - Emergency and Rescue Procedure\n\n**Status:** Draft - site-specific information required before work.\n\n## General response\n\n1. Stop work, raise the alarm and make the immediate area safe without creating further risk.\n2. Contact the site emergency team using the posted method.\n3. Maintain emergency access and provide accurate location/hazard information.\n4. Follow the site evacuation route and report at the assembly point when instructed.\n5. Preserve the scene after casualty care and report the event.\n\n## Work-at-height rescue\n\nA task-specific plan must define rescue method, trained rescuers, equipment, anchorage/access, communication, casualty handling and suspension-trauma controls. Recover a suspended person promptly without exposing rescuers to uncontrolled fall risk. Provide first aid and request medical assistance.\n\n## Electrical event\n\nDo not touch a casualty or equipment until the supply is isolated and confirmed safe by a competent person. No live electrical rescue is permitted. Apply site LOTO/emergency isolation and first-aid arrangements.\n\n## Fire or structural instability\n\nRaise the alarm, evacuate and isolate the area. Use firefighting equipment only if trained, the fire is small, a safe escape remains available and site rules permit. For panel/grid/temporary-stability movement, clear the exclusion area and obtain competent structural/temporary-works direction.\n\n`YELLOW PLACEHOLDER`: Insert emergency number, site contacts, exact assembly point, access coordinates, first aid/fire roles, rescue leads, equipment locations and drill/briefing records.\n\n","docs/03_Safe_Systems_of_Work/PTW-001_RevC1_Permit_to_Work_Procedure.md":"# PTW-001 Rev C1 - Permit to Work Procedure\n\n**Status:** Draft\n\n## Purpose\n\nUse project permits to authorise defined higher-risk work after prerequisite design, RAMS, competence, isolation and interface controls are verified. A permit does not replace supervision or risk assessment.\n\n## Potential permits\n\n- Hot work/cutting or grinding where classified by site rules.\n- Work at height or roof/controlled access where required.\n- Electrical isolation/LOTO and testing interface.\n- Lifting operation where required.\n- Temporary-works alteration or removal.\n- Confined space only if an applicable space is formally identified.\n\n## Issue and control\n\nThe authorised issuer and performing authority jointly confirm location, scope, drawing/method, hazards, isolations, equipment, competence, duration, interfaces, emergency controls and closeout. Display/retain the permit at the workface and record it in PER-001.\n\nSuspend and reassess if the scope, location, personnel, environment, design, equipment, isolation or controls change. Close only after the work is complete, the area is safe, guards/covers are restored, persons/tools are accounted for and isolations are transferred or released by the authorised person.\n\n`YELLOW PLACEHOLDER`: Insert project permit forms, issuer/acceptor names, validity periods, fire-watch duration, isolation procedure and authorisation matrix.\n\n","docs/04_Temporary_Works/TSP-001_RevC1_Temporary_Stability_Procedure.md":"# TSP-001 Rev C1 - Temporary Stability Procedure\n\n**Status:** Draft - an approved design/sketch is required before erection.\n\n## Function and limitations\n\nThe **Temporary Stability System** provides temporary lateral restraint to panels and incomplete room structures during erection. It is not access scaffold, an anchorage, or support for permanent/construction loads unless expressly designed and approved for that purpose.\n\n## Control process\n\n1. The TWC confirms the design category, design/check status, loads, restraint points, components, sequence, exclusions and removal criteria.\n2. The TWS briefs the approved drawing and checks materials, substrate/restraint points and interfaces.\n3. Install restraint before releasing each panel and maintain it through the approved erection sequence.\n4. Inspect before use, after installation/alteration, after impact or movement, and at the required frequency using FRM-003.\n5. Prevent unauthorised alteration and mark/segregate the system where necessary.\n6. Remove or transfer restraint only after written confirmation that permanent stability and relevant hold points are achieved.\n\n## Changes and defects\n\nStop work, clear the affected exclusion zone and notify the TWS/TWC for movement, looseness, damage, missing components, altered workface/restraint points, design conflict, or proposed change. Do not improvise braces or fixings.\n\n## Required design information\n\n`YELLOW PLACEHOLDER`: Provide named TWC/TWS, design/check certificates, stability drawings, brace type/capacity, approved building restraint points, independent-frame details, fixing type/torque, inspection frequency, exclusion zones, wind/environment assumptions if relevant, sequence and removal authority.\n\n","docs/05_Quality/ITP-001_RevC1_Inspection_Test_Plan.md":"# ITP-001 Rev C1 - Inspection and Test Plan\n\n**Status:** Draft  \n**Legend:** H = Hold, W = Witness, S = Surveillance/inspection.\n\n| Ref | Activity | Point | Acceptance basis | Record | Responsible/witness |\n|---|---|---|---|---|---|\n| ITP-01 | Source/drawing readiness | H | Current accepted issue in DRG-001; room mapping confirmed | FRM-004 | `YELLOW PLACEHOLDER` |\n| ITP-02 | Material acceptance | W | Labels, quantity, dimensions, damage, certificates | FRM-002 | QA/client `YELLOW PLACEHOLDER` |\n| ITP-03 | Setting out/workface | H | Approved grid/location, substrate and services accepted | Survey/FRM-004 | `YELLOW PLACEHOLDER` |\n| ITP-04 | Base frame | H | Line, level, dimensions, joints, fixings and tolerances | Checklist/FRM-004 | `YELLOW PLACEHOLDER` |\n| ITP-05 | Columns/wall panels | S/W | Correct label/thickness/orientation, joints, finish and alignment | Panel checklist | QA `YELLOW PLACEHOLDER` |\n| ITP-06 | Temporary stability | H | Approved system installed, inspected and protected | FRM-003/004 | TWS/TWC |\n| ITP-07 | Stacked-panel transition | H | Lower tier stable and accepted before upper tier | FRM-004 | Supervisor/TWS |\n| ITP-08 | Doors/windows/openings | W | Position, dimensions, handing, hardware, seal and function | Opening checklist | QA `YELLOW PLACEHOLDER` |\n| ITP-09 | Grid/edge beams/trusses | H | Labels, orientation, connections, level, restraint and design | Grid/truss record | `YELLOW PLACEHOLDER` |\n| ITP-10 | FFU/light/duct/AHU interfaces | W | Coordinated openings, supports, protection and sealing | Interface checklist | MEP/client `YELLOW PLACEHOLDER` |\n| ITP-11 | Electrical interface | H | Isolation, connection, inspection/test record; no live work | Test/FRM-004 | Competent person |\n| ITP-12 | Pre-concealment | H | Required evidence complete; no open NCR affecting work | FRM-004 | QA/client |\n| ITP-13 | Final inspection | H | Snags/NCRs closed, protection/cleanliness and records complete | Completion certificate | `YELLOW PLACEHOLDER` |\n\n`YELLOW PLACEHOLDER`: Insert approved tolerances, specification clauses, manufacturer criteria, notice periods, client witness points and named inspectors.\n\n","docs/05_Quality/QCP-001_RevC1_Quality_Control_Plan.md":"# QCP-001 Rev C1 - Quality Control Plan\n\n**Status:** Draft\n\n## Quality objectives\n\n- Install only to current accepted drawings, specifications and manufacturer instructions.\n- Preserve source traceability and component identification.\n- Inspect work before concealment or transfer of access.\n- Protect finished work and prevent unapproved field modification.\n- Record deviations, dispositions, reinspection and handover evidence.\n\n## Source and product compliance\n\nDRG-001 controls drawing applicability and SIR-001 controls source provenance. Create a product compliance matrix covering panel core/thickness/fire classification, frames, fixings, grids, trusses, doors, windows, FFUs, lights and other permanent components.\n\nSuggested standards from prior discussion are not automatically applicable. A competent person must confirm the correct standard, edition, scope, project specification clause and evidence before it is entered as an acceptance criterion.\n\nThe Castle manual and Airkey drawings are installation/product inputs, not proof of client approval or full statutory/BS/EN compliance.\n\n## Non-conformance\n\n1. Identify, stop and isolate affected work/material.\n2. Record the issue using FRM-005 and protect against unintended use/concealment.\n3. Obtain an authorised disposition: use-as-is, repair, rework or reject.\n4. Complete the corrective action and update affected RAMS/drawings where required.\n5. Reinspect, close linked hold points and retain evidence.\n\n## Handover\n\nCompile approved drawings, material/certification records, inspection/test records, permits/isolations, temporary-works records, NCR closeout, snag completion, cleaning/protection and client acceptance.\n\n`YELLOW PLACEHOLDER`: Insert project tolerances, specification/standard matrix, sample/inspection frequencies, client notice requirements, turnover format and handover schedule.\n\n","docs/06_Registers/CMP-001_RevC1_Component_Weight_and_Handling_Register.md":"# CMP-001 Rev C1 - Component Weight and Handling Register\n\n**Status:** Draft - do not use provisional values as lift instructions.\n\n## Verified source data available\n\nThe vendor packs provide dimensions, quantities and some truss weights. Examples include F1/FF C-shaped trusses shown approximately 26-58 kg per piece, F2/SF trusses shown approximately 40-60 kg for longer members, GF trusses shown at 100 kg per piece, and some SC038 trusses shown at approximately 12-18 kg. Each value must be checked against the exact drawing sheet, label, production number and current revision before use.\n\n## Handling register\n\n| Room | Component/label | Drawing/sheet | Dimensions | Verified weight | COG/characteristics | Handling method/crew | Route/height | Status |\n|---|---|---|---|---|---|---|---|---|\n| SC021 GF | Truss | GHD251026-01 | `YELLOW PLACEHOLDER` | Drawing shows 100 kg/pc - verify | Long member | Mechanical method `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n| SC021 F1/FF | Trusses | GHD251026-03 | Multiple lengths | 26-58 kg/pc shown - verify per label | Long member | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n| SC021 F2/SF | Trusses | GHD251026-05 | Multiple lengths | 40-60 kg/pc shown for longer members - verify | Long member | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n| SC038 A&B | Truss | GHD251237 | `YELLOW PLACEHOLDER` | 18 kg/pc shown - verify | Long member | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n| SC038 C | Truss | GHD251237-3 | 5060 mm shown | 12 kg/pc shown - verify | Long member | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n| SC038 FJ | Truss | GHD251237 | 5280 mm shown | 18 kg/pc shown - verify | Long member | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n| All | Wall panels by label/thickness/height | Room drawings | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Large surface/wind sail/grip | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n| All | Doors/frames/windows | Room drawings | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Fragile/awkward | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n| All | FFUs/lights/grilles/duct sections | Coordinated drawings | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Fragile/overhead | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n| All | Grid members/edge beams/columns/flooring | Room drawings | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Long/awkward | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n\nThe Rev B whole-room totals (for example GF/F1/F2 and SC038 room totals) are logistics information only and must not be used as individual component handling weights.\n\n## Completion rule\n\nPopulate from manufacturer data, component labels or a checked competent calculation. Record source, revision, verifier and date. Reassess after product/drawing/route/height/crew changes.\n\n","docs/06_Registers/TRN-001_RevC1_Competence_and_Training_Register.md":"# TRN-001 Rev C1 - Competence and Training Register\n\n**Status:** Draft\n\n## Role requirements\n\n| Role/activity | Required competence evidence | Person | Certificate/issuer | Expiry | Verified by/date |\n|---|---|---|---|---|---|\n| Site supervision | Project rule plus appropriate supervisor competence | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` |\n| Panel/manual handling | Task briefing and suitable manual-handling competence | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` |\n| MEWP operation | Applicable IPAF category or accepted equivalent | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` |\n| Mobile tower | PASMA or project-accepted equivalent | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` |\n| Abrasive wheels | Task/tool competence, potentially ECITB/project scheme | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` |\n| Fall protection/rescue | Equipment use/inspection and task rescue competence | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` |\n| Lifting team | AP/supervisor/slinger-signaller competence as assigned | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` |\n| Electrical interface | Project-authorised electrical competence | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` |\n| First aid/fire roles | Project-required certification | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` |\n| RPE use | Face-fit for selected tight-fitting RPE and briefing | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` |\n\nOnly assign training relevant to the person's actual role. ECITB, IPAF, PASMA, CSCS, SMSTS/SSSTS and other schemes mentioned by reviewers are candidates to verify against project rules, not automatic universal requirements.\n\n## Daily confirmation\n\nThe Supervisor confirms that assigned persons are inducted, competent, briefed and within certificate validity before work. Remove a person from the task if evidence is missing or the work changes beyond competence.\n\n","docs/06_Registers/PLT-001_RevC1_Plant_PAT_and_Lifting_Equipment_Register.md":"# PLT-001 Rev C1 - Plant, PAT and Lifting Equipment Register\n\n**Status:** Draft\n\n| Asset ID | Equipment/accessory | Make/model/serial | Owner | Inspection/PAT status | LOLER/thorough examination | SWL/capacity | Next due | Assigned task | Status |\n|---|---|---|---|---|---|---|---|---|---|\n| `YELLOW PLACEHOLDER` | 110 V/battery tools | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | N/A | N/A | `YELLOW PLACEHOLDER` | Cutting/drilling | Open |\n| `YELLOW PLACEHOLDER` | Powered vacuum lifter | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Pre-use/service `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Panel installation | Open |\n| `YELLOW PLACEHOLDER` | Crane/hoist/pick-and-carry | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n| `YELLOW PLACEHOLDER` | Slings/shackles/accessories | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Pre-use `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n| `YELLOW PLACEHOLDER` | MEWP/tower/podium | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Inspection `YELLOW PLACEHOLDER` | As applicable | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Access | Open |\n\n## Controls\n\nCheck identity and status before issue and before use. Quarantine damaged, overdue, unidentified or unsuitable equipment. PAT is not a substitute for visual pre-use checks; LOLER evidence is not a substitute for a lift plan or pre-use inspection.\n\n`YELLOW PLACEHOLDER`: Insert project voltage rules, PAT/inspection frequencies, colour coding, quarantine location and authorised inspectors.\n\n","docs/06_Registers/COS-001_RevC1_COSHH_and_SDS_Register.md":"# COS-001 Rev C1 - COSHH and SDS Register\n\n**Status:** Draft - no product may be used from this register until approved.\n\n| Product | Supplier | Intended task | SDS date/revision | Principal hazards | Controls | PPE/RPE/face fit | COSHH assessor/date | Status |\n|---|---|---|---|---|---|---|---|---|\n| Sealant/silicone | `YELLOW PLACEHOLDER` | Panel joints | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Substitute/ventilation/hygiene `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n| Adhesive/foam | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n| Cleaner/degreaser | `YELLOW PLACEHOLDER` | Surface preparation | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n| Paint/touch-up coating | `YELLOW PLACEHOLDER` | Repair | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n| Lubricant | `YELLOW PLACEHOLDER` | Hardware/equipment | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Open |\n\nBrief the product-specific assessment and keep the current SDS accessible. Define storage, decanting, spill/fire response, waste, hygiene, first aid and incompatible-product controls.\n\n","docs/06_Registers/PER-001_RevC1_Permit_Register_and_Authorisation_Matrix.md":"# PER-001 Rev C1 - Permit Register and Authorisation Matrix\n\n**Status:** Draft\n\n## Authorisation matrix\n\n| Permit/control | Applicable trigger | Issuer | Performing authority | Key prerequisites |\n|---|---|---|---|---|\n| Hot work | Site-classified hot work/cutting/grinding | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | RA, fire controls/watch, equipment/PPE |\n| Work at height | As required by project rules/task | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Access plan, inspection, exclusion, rescue if fall arrest |\n| Electrical isolation/LOTO | Connection/testing interface | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Isolation plan, competent person, prove dead |\n| Lifting | Equipment-assisted lifting where required | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Lift plan, team, equipment records, exclusion |\n| Temporary works | Alteration/removal/transfer | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Approved design and TWC/TWS release |\n\n## Live permit register\n\n| Permit no. | Type | Location/task | Valid from/to | Isolation/interface | Issuer | Acceptor | Suspension/closeout |\n|---|---|---|---|---|---|---|---|\n| `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` |\n\n","docs/07_Forms/FRM-001_RevC1_Daily_POWRA_Form.md":"# FRM-001 Rev C1 - Daily POWRA Form\n\n**Date/shift:** `YELLOW PLACEHOLDER`  \n**Room/location:** `YELLOW PLACEHOLDER`  \n**Supervisor:** `YELLOW PLACEHOLDER`  \n**Task/drawing/method:** `YELLOW PLACEHOLDER`\n\n## Pre-task check\n\n- [ ] Current drawing and room ID confirmed.\n- [ ] Workface, access, lighting, housekeeping and escape route acceptable.\n- [ ] Crew competence and briefing confirmed.\n- [ ] Component identity/weight/handling method confirmed.\n- [ ] Plant/access/lifting equipment status confirmed.\n- [ ] Temporary stability/design and restraint points available.\n- [ ] Required permits/isolations/COSHH controls active.\n- [ ] SIMOPS/exclusion zones coordinated.\n- [ ] Emergency and task rescue arrangements understood.\n\n## Changes or additional hazards\n\n`YELLOW PLACEHOLDER`: Record conditions, hazards, controls, owner and completion time.\n\n## Decision\n\n- [ ] Proceed under existing approved RAMS.\n- [ ] Stop and escalate under HPR-001.\n\n**Briefed persons/signatures:** `YELLOW PLACEHOLDER`\n\n## Completion details\n\n**Completed by:** `YELLOW PLACEHOLDER`  \n**Date:** `YELLOW PLACEHOLDER`\n","docs/07_Forms/FRM-002_RevC1_Material_Acceptance_Form.md":"# FRM-002 Rev C1 - Material Acceptance Form\n\n**Date/time:** `YELLOW PLACEHOLDER`  \n**Workface/room:** `YELLOW PLACEHOLDER`  \n**Delivery/handover reference:** `YELLOW PLACEHOLDER`\n\n| Component/label | Drawing/PO | Quantity | Dimensions/weight verified | Condition/finish | Certificates/traceability | Accept/quarantine |\n|---|---|---:|---|---|---|---|\n| `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` |\n\n**Damage/shortage/non-conformance action:** `YELLOW PLACEHOLDER`  \n**Accepted by/date:** `YELLOW PLACEHOLDER`\n\n## Completion details\n\n**Completed by:** `YELLOW PLACEHOLDER`  \n**Date:** `YELLOW PLACEHOLDER`\n","docs/07_Forms/FRM-003_RevC1_Temporary_Stability_Inspection_Form.md":"# FRM-003 Rev C1 - Temporary Stability Inspection Form\n\n**Room/location:** `YELLOW PLACEHOLDER`  \n**Design/drawing/check reference:** `YELLOW PLACEHOLDER`  \n**TWC/TWS:** `YELLOW PLACEHOLDER`  \n**Inspection trigger:** Initial / alteration / impact / periodic / pre-removal\n\n- [ ] Correct system/components and configuration.\n- [ ] Approved restraint points/substrate/fixings.\n- [ ] Braces secure, undamaged and correctly oriented.\n- [ ] Panel restraint connected before release.\n- [ ] Exclusion/unauthorised alteration controls in place.\n- [ ] No access/permanent loads applied to the system.\n- [ ] Erection stage and next sequence within design assumptions.\n- [ ] Removal/transfer not permitted until permanent stability release.\n\n**Defects/actions:** `YELLOW PLACEHOLDER`  \n**Result:** Accept / Reject / Restricted  \n**Inspector/signature/date:** `YELLOW PLACEHOLDER`\n\n## Completion details\n\n**Completed by:** `YELLOW PLACEHOLDER`  \n**Date:** `YELLOW PLACEHOLDER`\n","docs/07_Forms/FRM-004_RevC1_Hold_Point_Release_Form.md":"# FRM-004 Rev C1 - Hold Point Release Form\n\n**Hold point:** `YELLOW PLACEHOLDER`  \n**Room/location:** `YELLOW PLACEHOLDER`  \n**Drawing/spec/method references:** `YELLOW PLACEHOLDER`\n\n| Acceptance requirement | Evidence/record | Result | Action/reference |\n|---|---|---|---|\n| `YELLOW PLACEHOLDER` | `YELLOW PLACEHOLDER` | Accept/Reject | `YELLOW PLACEHOLDER` |\n\n**Change/POWRA/RAMS/design review completed where applicable:** `YELLOW PLACEHOLDER`  \n**Released scope/limitations:** `YELLOW PLACEHOLDER`  \n**Released by/role/date:** `YELLOW PLACEHOLDER`  \n**Witness/client acceptance:** `YELLOW PLACEHOLDER`\n\n## Completion details\n\n**Completed by:** `YELLOW PLACEHOLDER`  \n**Date:** `YELLOW PLACEHOLDER`\n","docs/07_Forms/FRM-005_RevC1_NCR_and_Corrective_Action_Form.md":"# FRM-005 Rev C1 - NCR and Corrective Action Form\n\n**NCR:** `YELLOW PLACEHOLDER`  \n**Date/location/component:** `YELLOW PLACEHOLDER`  \n**Requirement/drawing/specification:** `YELLOW PLACEHOLDER`\n\n## Non-conformance\n\n`YELLOW PLACEHOLDER`: Describe condition, evidence, extent and immediate isolation/protection.\n\n## Disposition\n\n- [ ] Use as is - authorised engineering acceptance attached.\n- [ ] Repair.\n- [ ] Rework.\n- [ ] Reject/replace.\n\n**Authorised disposition/by/date:** `YELLOW PLACEHOLDER`\n\n## Corrective action and closeout\n\n**Action/owner/due date:** `YELLOW PLACEHOLDER`  \n**Reinspection evidence:** `YELLOW PLACEHOLDER`  \n**Related drawing/RAMS/ITP update:** `YELLOW PLACEHOLDER`  \n**Closed by/date:** `YELLOW PLACEHOLDER`\n\n## Completion details\n\n**Completed by:** `YELLOW PLACEHOLDER`  \n**Date:** `YELLOW PLACEHOLDER`\n","docs/08_References/SIR-001_RevC1_Source_Information_Register.md":"# SIR-001 Rev C1 - Source Information Register\n\n**Status:** Draft provenance register  \n**Source archive:** `CWP-20260804T194847Z-1-001.zip`, supplied 4 August 2026.\n\nSource files are preserved unchanged. SHA-256 values below identify the imported copies.\n\n## Original RAMS and manufacturer reference\n\n| Source file | Size (bytes) | SHA-256 | Use/status |\n|---|---:|---|---|\n| [Rev B Method Statement](attachments/references/source_rams/Method%20Statement%20-001-%20SC021%20-%20Clean%20%26%20Modula%20Rooms%20Assembly%20Activities%28B%29.docx) | 39,646 | `167F1DEEDDE808A975CAE4BDF0D79280F88B1BD3FBD07D9594AD51DA2F1A8F2C` | Historical source; not current approved method |\n| [Rev B Risk Assessment](attachments/references/source_rams/Risk%20Assessment-001-%20SC021-CCV%20Clean%20%26%20Modular%20Rooms%20Assembly%20Activities%20%28B%29.docx) | 63,383 | `21D4FE73000C1C7A4992C5A8563DA4751485B157A04EDDD33EEFB8DAA8A45297` | Generic historical source; review due date shown 16-08-2026 |\n| [Manual Handling DOCX](attachments/references/source_rams/MHP-001_RevC1_Manual_Handling_Procedure.docx) | 37,384 | `42C3B8740C788C485DEB54DF130286993AC753A106D6EAFAEF59015886A15C01` | Generated draft source |\n| [Castle installation manual](attachments/references/manufacturer/General%20Installation%20Manual%20for%20Modular%20Cleanroom-Castle-2025%20%282%29.pdf) | 7,677,620 | `4F9A5A487D6CF55BD2258C1FBCA57936834812E3F2BA75D41DEAC7610236F081` | Manufacturer installation reference; approval/compliance not established |\n\n## Factory layouts\n\n| Source file | Drawing number/date/status | SHA-256 |\n|---|---|---|\n| [Grid 1-21](attachments/drawings/site_layout/factory%20layout%20grid%201-21.pdf) | S264-EDA-MF-00-DR-AR-11301; 04-02-2025; S4 | `D06D685C990EB5F40DE99C25178446B3FD90199ACC36621AD1BC90498D462980` |\n| [Grid 21-38](attachments/drawings/site_layout/factory%20layout%20grid%2021-38.pdf) | S264-EDA-MF-00-DR-AR-11302; 04-02-2025; S4 | `84195BEB629460D0642B4B32EDA0831B45D20DFDAF0531510F300F4D5B7C0B44` |\n| [Grid 38-52](attachments/drawings/site_layout/factory%20layout%20grid%2038-52.pdf) | S264-EDA-MF-00-DR-AR-11303; 04-02-2025; S4 | `E816643104FF64198E61AE324FF2543EF5505B33E09A6BF6CFFC535070AC78D3` |\n\nS4 meaning and current approval/supersession remain `YELLOW PLACEHOLDER`.\n\n## SC021 vendor packs\n\n| Source file | Production number | SHA-256 |\n|---|---|---|\n| [GF assembly pack](attachments/drawings/SC021/Assembly%20Drawing%20for%20GF%20with%20Truss.pdf) | GHD251026-01 | `6397AF66DA15240D4CC28D9762D637EB01716ECAE468A3C713B01CDF83E36AA2` |\n| [F1/FF assembly pack](attachments/drawings/SC021/Assembly%20Drawing%20for%20F1%28FF%29%20with%20Truss.pdf) | GHD251026-03 | `3CB0E09DB81379965F81BB01E1104F4C626EC51C3E2508DB435A3A1845FC4A76` |\n| [F2/SF assembly pack](attachments/drawings/SC021/Assembly%20Drawing%20for%20F2%28SF%29%20with%20Truss.pdf) | GHD251026-05 | `C03CCE161CE1CA8855D3BACEFF34FA84B1644294C31755622B392CC8FE788BB1` |\n| Unidentified DWG (not included in audience distribution; retained in controlled master) | `YELLOW PLACEHOLDER` | `7FDB81BFE5CE607B81471BA5BD0697A02AE532773DA6AC4191044D0392B6DC20` |\n\n## SC038 vendor packs\n\n| Source file | Production number/mapping | SHA-256 |\n|---|---|---|\n| [Rooms A&B](attachments/drawings/SC038/Assembly%20Drawing%20for%20SC038-%20ROOM%20A%26B%20with%20Truss.pdf) | GHD251237; mapping to be approved | `5F27DCC5BAB8AE83948A4A1FD310E2F789A17B1148BAB884BB7E4BDE5BB35AAD` |\n| [Room C](attachments/drawings/SC038/Assembly%20Drawing%20for%20SC038-%20ROOM%20C%20with%20Truss.pdf) | GHD251237-3 | `482F413D16B289B66569D25E29738B5C46B64421478101B68C49C5CA737282CA` |\n| [Room FJ](attachments/drawings/SC038/Assembly%20Drawing%20for%20SC038-%20ROOM%20FJ%20with%20Truss.pdf) | GHD251237; confirm FJ/FJA | `A2134E17A947316583C33C678C8A3B20ED81760AF1E5690BF8D7DE1B07990530` |\n| [Room LPR](attachments/drawings/SC038/Assembly%20Drawing%20for%20SC038-%20ROOM%20LPR.PDF) | Production references inconsistent; verify | `13D761214C2C6645DB2F2FC4238A58BFDE0B883F84793CE04E138DF16C70496F` |\n| [WC-LEFT](attachments/drawings/SC038/Assembly%20Drawing%20for%20SC038-%20ROOM%20WC-LEFT.pdf) | Confirm toilet-block mapping | `BBC711DAAD0668F694DCBB0F531FC89D072CB699E57117737341FC555089B54D` |\n| [WC01-RIGHT](attachments/drawings/SC038/Assembly%20Drawing%20for%20SC038-%20ROOM%20WC01-RIGHT.PDF) | GHD160719 shown; verify | `4C037F9B9C37DC8C400947B2CD2CBE871891940D2287F39490EF20ABF91D8259` |\n| [WC02](attachments/drawings/SC038/Assembly%20Drawing%20for%20SC038-%20ROOM%20WC02.PDF) | Confirm toilet-block mapping | `30858A6AC99044C3B38DF71135B8BCA4E283F73E071A3F37685D2E432B044DEC` |\n| [CCT](attachments/drawings/SC038/CCT%20Room%20Assembly%20Drawing.pdf) | GHD251237; dated 07-01-2026 | `AE9ACA427633488A3C7EEF41078AE149059E0B9A8FE62B44CDB5EDCF420D746E` |\n| [Drain Collection room](attachments/drawings/SC038/DC%20Room%20Assembly%20drawings.pdf) | Drawing fields show YRX; dated 23-03-2026 | `866CB4DC0494D8237AEB3C9D0BDF55DFE6273B60D89A7837BD699A7FD701EE56` |\n| LRP Room Assembly Drawing.pdf (duplicate not separately retained) | Exact duplicate of retained LPR source; pages identify LPR | `13D761214C2C6645DB2F2FC4238A58BFDE0B883F84793CE04E138DF16C70496F` |\n\n## Source limitations\n\n- Vendor drawing revision/approval fields and supersession require confirmation.\n- Room names do not map one-to-one to the Rev B list; LRP/LPR is a confirmed duplicate-file alias but the authorised contract room name remains to be resolved.\n- The DWG requires identification and a controlled PDF export.\n- Some truss weights are present; complete component weights are not.\n- Manufacturer sources do not replace project design, HSE, product-compliance or client approval.\n"},"build":{"format":1,"documentCount":26,"generatedBy":"tools/build_content_bundle.mjs"}};
+
+</script>
+  <script>
+(() => {
+  "use strict";
+
+  const data = window.CWPS_DATA;
+  const $ = (id) => document.getElementById(id);
+
+  if (!data || !data.manifest || !data.documents) {
+    document.body.innerHTML = '<p class="fatal-error"><strong>Offline content bundle missing.</strong><br>Run the maintainer build script or open the Markdown files in the docs folder.</p>';
+    return;
+  }
+
+  const manifest = data.manifest;
+  const documents = manifest.documents;
+  const byId = new Map(documents.map((doc) => [doc.id, doc]));
+  const searchIndex = documents.map((doc) => {
+    const markdown = data.documents[doc.path] || "";
+    return {
+      doc,
+      markdown,
+      text: normalize(`${doc.id} ${doc.title} ${doc.category} ${stripMarkdown(markdown)}`)
+    };
+  });
+
+  const storage = {
+    available: false,
+    get(key) {
+      if (!this.available) return null;
+      try { return localStorage.getItem(key); } catch { return null; }
+    },
+    set(key, value) {
+      if (!this.available) return false;
+      try { localStorage.setItem(key, value); return true; } catch { return false; }
+    },
+    remove(key) {
+      if (!this.available) return false;
+      try { localStorage.removeItem(key); return true; } catch { return false; }
+    }
+  };
+
+  try {
+    const probe = "__cwps_storage_probe__";
+    localStorage.setItem(probe, probe);
+    localStorage.removeItem(probe);
+    storage.available = true;
+  } catch { storage.available = false; }
+
+  const state = {
+    activeId: null,
+    theme: storage.get("cwps-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
+    editing: false,
+    autoSaveTimer: null
+  };
+
+  const elements = {
+    nav: $("documentNav"),
+    count: $("documentCount"),
+    placeholderCount: $("placeholderCount"),
+    search: $("searchInput"),
+    results: $("searchResults"),
+    resultsTitle: $("resultsTitle"),
+    resultsList: $("resultsList"),
+    clearSearch: $("clearSearch"),
+    layout: $("documentLayout"),
+    category: $("docCategory"),
+    title: $("docTitle"),
+    metadata: $("docMetadata"),
+    content: $("documentContent"),
+    footerId: $("docFooterId"),
+    toc: $("tableOfContents"),
+    recordToolbar: $("recordToolbar"),
+    recordStatus: $("recordStatus"),
+    editRecord: $("editRecordButton"),
+    saveDraft: $("saveDraftButton"),
+    downloadRecord: $("downloadRecordButton"),
+    downloadHtml: $("downloadHtmlButton"),
+    openRecord: $("openRecordButton"),
+    importFeedback: $("importFeedbackButton"),
+    clearRecord: $("clearRecordButton"),
+    recordFile: $("recordFileInput"),
+    feedbackFile: $("feedbackFileInput"),
+    theme: $("themeButton"),
+    print: $("printButton"),
+    menu: $("menuButton"),
+    scrim: $("sidebarScrim")
+  };
+
+  function normalize(value) {
+    return String(value || "").normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[char]);
+  }
+
+  function stripMarkdown(value) {
+    return String(value || "")
+      .replace(/```[\s\S]*?```/g, " ")
+      .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+      .replace(/[#>*_`|~-]/g, " ")
+      .replace(/\s+/g, " ");
+  }
+
+  function safeHref(href) {
+    const value = String(href || "").trim();
+    if (/^(javascript|data|vbscript):/i.test(value)) return "#";
+    return value;
+  }
+
+  function placeholderMarkup(value) {
+    return String(value).replace(/YELLOW PLACEHOLDER/g, '<mark class="placeholder">YELLOW PLACEHOLDER</mark>');
+  }
+
+  function inlineMarkdown(source) {
+    const tokens = [];
+    let value = String(source || "");
+
+    value = value.replace(/`([^`]+)`/g, (_, code) => {
+      const html = `<code>${placeholderMarkup(escapeHtml(code))}</code>`;
+      const token = `\u0000TOKEN${tokens.length}\u0000`;
+      tokens.push(html);
+      return token;
+    });
+
+    value = value.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) => {
+      const safe = safeHref(href);
+      const external = /^(https?:)?\/\//i.test(safe);
+      const isAttachment = !external && /\.(pdf|docx?|dwg|xlsx?)($|[?#])/i.test(safe);
+      let attrs = "";
+      if (external) {
+        attrs = ' target="_blank" rel="noopener"';
+      } else if (isAttachment) {
+        // Local file:// links opened in a new tab are blocked by many Android
+        // browsers/file managers. Same-tab navigation plus a "download" hint
+        // gives the OS a second, more reliable way to hand the file off to a
+        // viewer app (Word, PDF, etc.) when direct in-page navigation is blocked.
+        const cleanPath = safe.split(/[?#]/)[0];
+        const decodedName = decodeURIComponent(cleanPath.split("/").pop() || "attachment");
+        attrs = ` download="${escapeHtml(decodedName)}"`;
+      }
+      const html = `<a href="${escapeHtml(safe)}"${attrs}>${escapeHtml(label)}</a>`;
+      const token = `\u0000TOKEN${tokens.length}\u0000`;
+      tokens.push(html);
+      return token;
+    });
+
+    value = escapeHtml(value)
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/__([^_]+)__/g, "<strong>$1</strong>")
+      .replace(/(^|\W)\*([^*]+)\*(?=\W|$)/g, "$1<em>$2</em>")
+      .replace(/~~([^~]+)~~/g, "<del>$1</del>")
+      .replace(/\[ \]/g, '<input class="task-checkbox" type="checkbox" disabled aria-label="Unchecked item">')
+      .replace(/\[[xX]\]/g, '<input class="task-checkbox" type="checkbox" checked disabled aria-label="Checked item">');
+
+    value = placeholderMarkup(value);
+    tokens.forEach((html, index) => {
+      value = value.replace(`\u0000TOKEN${index}\u0000`, html);
+    });
+    return value;
+  }
+
+  function slugify(value, used) {
+    const base = normalize(value).replace(/\s+/g, "-") || "section";
+    let slug = base;
+    let counter = 2;
+    while (used.has(slug)) slug = `${base}-${counter++}`;
+    used.add(slug);
+    return slug;
+  }
+
+  function splitTableRow(line) {
+    return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
+  }
+
+  function isTableSeparator(line) {
+    return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line || "");
+  }
+
+  function isSpecial(line, next) {
+    return /^\s*$/.test(line) || /^#{1,6}\s+/.test(line) || /^```/.test(line) || /^\s*([-*+]\s+|\d+\.\s+)/.test(line) || /^>\s?/.test(line) || /^\s*([-*_])(?:\s*\1){2,}\s*$/.test(line) || (line.includes("|") && isTableSeparator(next));
+  }
+
+  function renderMarkdown(markdown) {
+    const lines = String(markdown || "").replace(/\r\n?/g, "\n").split("\n");
+    const html = [];
+    const headings = [];
+    const usedSlugs = new Set();
+    let i = 0;
+
+    while (i < lines.length) {
+      const line = lines[i];
+
+      if (!line.trim()) { i += 1; continue; }
+
+      const fence = line.match(/^```\s*([\w-]*)/);
+      if (fence) {
+        const code = [];
+        i += 1;
+        while (i < lines.length && !/^```/.test(lines[i])) code.push(lines[i++]);
+        if (i < lines.length) i += 1;
+        html.push(`<pre><code data-language="${escapeHtml(fence[1])}">${escapeHtml(code.join("\n"))}</code></pre>`);
+        continue;
+      }
+
+      const heading = line.match(/^(#{1,6})\s+(.+?)\s*#*$/);
+      if (heading) {
+        const level = heading[1].length;
+        const raw = heading[2];
+        const slug = slugify(stripMarkdown(raw), usedSlugs);
+        if (level === 2 || level === 3) headings.push({ level, text: stripMarkdown(raw), slug });
+        html.push(`<h${level} id="${slug}">${inlineMarkdown(raw)}</h${level}>`);
+        i += 1;
+        continue;
+      }
+
+      if (/^\s*([-*_])(?:\s*\1){2,}\s*$/.test(line)) {
+        html.push("<hr>"); i += 1; continue;
+      }
+
+      if (line.includes("|") && isTableSeparator(lines[i + 1])) {
+        const headers = splitTableRow(line);
+        i += 2;
+        const rows = [];
+        while (i < lines.length && lines[i].trim() && lines[i].includes("|")) rows.push(splitTableRow(lines[i++]));
+        html.push('<div class="table-wrap"><table><thead><tr>');
+        headers.forEach((cell) => html.push(`<th scope="col">${inlineMarkdown(cell)}</th>`));
+        html.push("</tr></thead><tbody>");
+        rows.forEach((row) => {
+          html.push("<tr>");
+          headers.forEach((_, index) => html.push(`<td>${inlineMarkdown(row[index] || "")}</td>`));
+          html.push("</tr>");
+        });
+        html.push("</tbody></table></div>");
+        continue;
+      }
+
+      const listMatch = line.match(/^\s*([-*+]|\d+\.)\s+(.+)/);
+      if (listMatch) {
+        const ordered = /\d+\./.test(listMatch[1]);
+        const tag = ordered ? "ol" : "ul";
+        html.push(`<${tag}>`);
+        while (i < lines.length) {
+          const match = lines[i].match(/^\s*([-*+]|\d+\.)\s+(.+)/);
+          if (!match || /\d+\./.test(match[1]) !== ordered) break;
+          html.push(`<li>${inlineMarkdown(match[2])}</li>`);
+          i += 1;
+        }
+        html.push(`</${tag}>`);
+        continue;
+      }
+
+      if (/^>\s?/.test(line)) {
+        const quote = [];
+        while (i < lines.length && /^>\s?/.test(lines[i])) quote.push(lines[i++].replace(/^>\s?/, ""));
+        html.push(`<blockquote>${inlineMarkdown(quote.join(" "))}</blockquote>`);
+        continue;
+      }
+
+      const paragraph = [line.trim()];
+      i += 1;
+      while (i < lines.length && !isSpecial(lines[i], lines[i + 1])) paragraph.push(lines[i++].trim());
+      html.push(`<p>${inlineMarkdown(paragraph.join(" "))}</p>`);
+    }
+
+    return { html: html.join("\n"), headings };
+  }
+
+  function renderNavigation(filter = "") {
+    const query = normalize(filter);
+    const groups = new Map();
+    documents.forEach((doc) => {
+      const indexed = searchIndex.find((item) => item.doc.id === doc.id);
+      if (query && !indexed.text.includes(query)) return;
+      if (!groups.has(doc.category)) groups.set(doc.category, []);
+      groups.get(doc.category).push(doc);
+    });
+
+    elements.nav.innerHTML = "";
+    groups.forEach((docs, category) => {
+      const group = document.createElement("section");
+      group.className = "nav-group";
+      const title = document.createElement("h2");
+      title.className = "nav-group-title";
+      title.textContent = category;
+      group.appendChild(title);
+      docs.forEach((doc) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `nav-item${doc.id === state.activeId ? " active" : ""}`;
+        button.dataset.id = doc.id;
+        button.innerHTML = `<span class="nav-id">${escapeHtml(doc.id)}</span><span class="nav-title">${escapeHtml(doc.title)}</span>`;
+        button.addEventListener("click", () => openDocument(doc.id));
+        group.appendChild(button);
+      });
+      elements.nav.appendChild(group);
+    });
+  }
+
+  function parseRoute() {
+    const route = decodeURIComponent(location.hash.replace(/^#/, ""));
+    const [id, section] = route.split("/");
+    return { id: byId.has(id) ? id : documents[0]?.id, section };
+  }
+
+  function updateMetadata(doc) {
+    const entries = [
+      ["Document", doc.id], ["Revision", doc.revision], ["Status", doc.status], ["Updated", manifest.updated]
+    ];
+    elements.metadata.innerHTML = entries.map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${key === "Status" ? `<span class="status-pill">${escapeHtml(value)}</span>` : escapeHtml(value)}</dd>`).join("");
+  }
+
+  function renderToc(headings, docId) {
+    elements.toc.innerHTML = headings.length
+      ? headings.map((heading) => `<a class="level-${heading.level}" href="#${encodeURIComponent(docId)}/${encodeURIComponent(heading.slug)}">${escapeHtml(heading.text)}</a>`).join("")
+      : '<span>No section headings</span>';
+  }
+
+  function highlightTerm(root, query) {
+    const terms = normalize(query).split(" ").filter((term) => term.length > 1);
+    if (!terms.length) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (!node.nodeValue.trim() || node.parentElement.closest("mark, code, a")) return NodeFilter.FILTER_REJECT;
+        return terms.some((term) => normalize(node.nodeValue).includes(term)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    const pattern = new RegExp(`(${terms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "ig");
+    nodes.forEach((node) => {
+      const parts = node.nodeValue.split(pattern);
+      const fragment = document.createDocumentFragment();
+      parts.forEach((part, index) => {
+        if (index % 2) {
+          const mark = document.createElement("mark");
+          mark.className = "search-hit";
+          mark.textContent = part;
+          fragment.appendChild(mark);
+        } else fragment.appendChild(document.createTextNode(part));
+      });
+      node.replaceWith(fragment);
+    });
+  }
+
+  function openDocument(id, highlight = "", section = "") {
+    const doc = byId.get(id) || documents[0];
+    if (!doc) return;
+    const markdown = data.documents[doc.path];
+    state.activeId = doc.id;
+    elements.category.textContent = doc.category;
+    elements.title.textContent = doc.title;
+    elements.footerId.textContent = `${doc.id} · Rev ${doc.revision} · ${doc.status}`;
+    updateMetadata(doc);
+
+    if (typeof markdown !== "string") {
+      elements.content.innerHTML = `<div class="empty-state"><strong>Document source unavailable.</strong><br>${escapeHtml(doc.path)}</div>`;
+      elements.toc.innerHTML = "";
+    } else {
+      const rendered = renderMarkdown(markdown);
+      elements.content.innerHTML = rendered.html;
+      renderToc(rendered.headings, doc.id);
+      if (highlight) highlightTerm(elements.content, highlight);
+    }
+
+    setupRecordEditor(doc);
+
+    elements.results.hidden = true;
+    elements.layout.hidden = false;
+    renderNavigation();
+    closeMenu();
+    document.title = `${doc.id} - ${doc.title} | Europlan CWPS`;
+
+    const targetHash = `#${encodeURIComponent(doc.id)}${section ? `/${encodeURIComponent(section)}` : ""}`;
+    if (location.hash !== targetHash) history.pushState(null, "", targetHash);
+    requestAnimationFrame(() => {
+      const target = section ? document.getElementById(section) : elements.content;
+      if (target) target.scrollIntoView({ block: section ? "start" : "nearest" });
+    });
+  }
+
+  function excerpt(text, terms) {
+    const plain = stripMarkdown(text);
+    const lower = plain.toLowerCase();
+    const hit = terms.map((term) => lower.indexOf(term)).filter((index) => index >= 0).sort((a, b) => a - b)[0] || 0;
+    const start = Math.max(0, hit - 85);
+    const end = Math.min(plain.length, start + 230);
+    return `${start ? "…" : ""}${plain.slice(start, end)}${end < plain.length ? "…" : ""}`;
+  }
+
+  function runSearch(value) {
+    const query = normalize(value);
+    renderNavigation(query);
+    if (!query) {
+      elements.results.hidden = true;
+      elements.layout.hidden = false;
+      return;
+    }
+
+    const terms = query.split(" ").filter(Boolean);
+    const matches = searchIndex
+      .filter((item) => terms.every((term) => item.text.includes(term)))
+      .map((item) => {
+        const titleText = normalize(`${item.doc.id} ${item.doc.title}`);
+        const score = terms.reduce((total, term) => total + (titleText.includes(term) ? 10 : 1), 0);
+        return { ...item, score };
+      })
+      .sort((a, b) => b.score - a.score || a.doc.id.localeCompare(b.doc.id));
+
+    elements.layout.hidden = true;
+    elements.results.hidden = false;
+    elements.resultsTitle.textContent = `${matches.length} result${matches.length === 1 ? "" : "s"} for “${value.trim()}”`;
+    elements.resultsList.innerHTML = matches.length ? "" : '<div class="empty-state">No matching documents. Try fewer or broader terms.</div>';
+    matches.forEach((match) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "result-card";
+      button.innerHTML = `<strong>${escapeHtml(match.doc.id)} · ${escapeHtml(match.doc.title)}</strong><small>${escapeHtml(match.doc.category)}</small><p>${escapeHtml(excerpt(match.markdown, terms))}</p>`;
+      button.addEventListener("click", () => {
+        const original = elements.search.value;
+        elements.search.value = "";
+        openDocument(match.doc.id, original);
+      });
+      elements.resultsList.appendChild(button);
+    });
+  }
+
+  function recordStorageKey(id) {
+    return id === "RA-001" ? "cwps-record-v2:RA-001" : `cwps-record-v1:${id}`;
+  }
+
+  function setRecordStatus(message, type = "") {
+    elements.recordStatus.textContent = message;
+    elements.recordStatus.className = `record-status${type ? ` ${type}` : ""}`;
+  }
+
+  function ensureEditableFields() {
+    elements.content.querySelectorAll("mark.placeholder").forEach((mark, index) => {
+      const field = document.createElement("span");
+      field.className = "editable-placeholder";
+      field.dataset.fieldKey = `field-${String(index + 1).padStart(3, "0")}`;
+      field.dataset.original = "YELLOW PLACEHOLDER";
+      field.setAttribute("role", "textbox");
+      field.setAttribute("aria-label", `Open item ${index + 1}`);
+      mark.replaceWith(field);
+    });
+    elements.content.querySelectorAll(".task-checkbox").forEach((checkbox, index) => {
+      checkbox.dataset.checkKey = `check-${String(index + 1).padStart(3, "0")}`;
+    });
+  }
+
+  const riskScoring = window.CWPS_RISK;
+  const riskBands = riskScoring?.bands || [];
+
+  function numericRiskValue(field) {
+    return riskScoring?.parseRating(field?.textContent || "") ?? null;
+  }
+
+  function applyRiskBand(cell, score) {
+    const classes = ["risk-unrated", ...riskBands.map((band) => band.className)];
+    cell.classList.remove(...classes);
+    const band = riskScoring?.bandForScore(score) || null;
+    cell.classList.add(band?.className || "risk-unrated");
+    cell.dataset.riskRating = band?.label || "Unrated";
+    cell.title = band ? `${score} - ${band.label}` : "Enter likelihood and impact values from 1 to 5";
+  }
+
+  function updateRiskRow(row) {
+    for (const phase of ["initial", "residual"]) {
+      const likelihood = row.querySelector(`.risk-${phase}-l`);
+      const impact = row.querySelector(`.risk-${phase}-i`);
+      const output = row.querySelector(`.risk-${phase}-score`);
+      if (!output) continue;
+      const lValue = numericRiskValue(likelihood);
+      const iValue = numericRiskValue(impact);
+      likelihood?.setAttribute("aria-invalid", lValue === null && likelihood.textContent.trim() ? "true" : "false");
+      impact?.setAttribute("aria-invalid", iValue === null && impact.textContent.trim() ? "true" : "false");
+      const score = riskScoring?.calculate(lValue, iValue) ?? null;
+      output.textContent = score === null ? "TBC" : String(score);
+      output.contentEditable = "false";
+      output.setAttribute("aria-readonly", "true");
+      applyRiskBand(output.closest("td"), score);
+    }
+  }
+
+  function updateAllRiskScores() {
+    elements.content.querySelectorAll(".risk-assessment-table tbody tr").forEach(updateRiskRow);
+  }
+
+  function setupRiskAssessmentEditor() {
+    if (state.activeId !== "RA-001") return;
+    const tables = [...elements.content.querySelectorAll("table")];
+    const assessment = tables.find((table) => table.tHead?.textContent.includes("Initial L") && table.tHead.textContent.includes("Residual score"));
+    const legend = tables.find((table) => table.tHead?.textContent.includes("Risk score") && table.tHead.textContent.includes("Rating"));
+    legend?.classList.add("risk-legend-table");
+    if (!assessment) return;
+
+    assessment.classList.add("risk-assessment-table");
+    assessment.querySelectorAll("tbody tr").forEach((row, rowIndex) => {
+      const cells = [...row.cells];
+      if (cells.length !== 11) return;
+      const roles = {
+        4: "risk-initial-l", 5: "risk-initial-i", 6: "risk-initial-score",
+        7: "risk-residual-l", 8: "risk-residual-i", 9: "risk-residual-score"
+      };
+      for (const [cellIndexText, className] of Object.entries(roles)) {
+        const cellIndex = Number(cellIndexText);
+        const field = cells[cellIndex].querySelector(".editable-placeholder");
+        if (!field) continue;
+        field.classList.add("risk-input", className);
+        field.setAttribute("inputmode", "numeric");
+        field.setAttribute("aria-label", `${cells[0].textContent.trim()} ${className.replaceAll("-", " ")}`);
+        if (className.endsWith("score")) {
+          field.classList.add("risk-score-output");
+          cells[cellIndex].classList.add("risk-score-cell");
+        }
+      }
+      cells.forEach((cell, cellIndex) => {
+        if (cellIndex >= 4 && cellIndex <= 9) return;
+        cell.classList.add("record-editable-cell");
+        cell.dataset.cellKey = `ra-row-${String(rowIndex + 1).padStart(2, "0")}-cell-${String(cellIndex + 1).padStart(2, "0")}`;
+        cell.dataset.originalValue = cell.textContent.trim();
+        cell.contentEditable = state.editing ? "true" : "false";
+        cell.setAttribute("aria-readonly", state.editing ? "false" : "true");
+      });
+      updateRiskRow(row);
+    });
+  }
+
+  function setRecordMode(enabled, focusFirst = true) {
+    ensureEditableFields();
+    state.editing = Boolean(enabled);
+    elements.content.classList.toggle("record-mode", state.editing);
+    elements.content.querySelectorAll(".editable-placeholder").forEach((field) => {
+      field.contentEditable = state.editing ? "true" : "false";
+      field.setAttribute("aria-readonly", state.editing ? "false" : "true");
+    });
+    elements.content.querySelectorAll(".risk-score-output").forEach((field) => {
+      field.contentEditable = "false";
+      field.setAttribute("aria-readonly", "true");
+    });
+    elements.content.querySelectorAll(".record-editable-cell").forEach((cell) => {
+      cell.contentEditable = state.editing ? "true" : "false";
+      cell.setAttribute("aria-readonly", state.editing ? "false" : "true");
+    });
+    elements.content.querySelectorAll(".task-checkbox").forEach((checkbox) => {
+      checkbox.disabled = !state.editing;
+    });
+    elements.editRecord.setAttribute("aria-pressed", state.editing ? "true" : "false");
+    elements.editRecord.textContent = state.editing ? "Lock entries" : (state.activeId === "RA-001" ? "Edit risk assessment" : "Edit yellow items");
+    if (state.editing && focusFirst) elements.content.querySelector(".editable-placeholder")?.focus();
+  }
+
+  function collectRecord() {
+    const doc = byId.get(state.activeId);
+    const values = {};
+    const checks = {};
+    const cells = {};
+    elements.content.querySelectorAll(".editable-placeholder").forEach((field) => {
+      values[field.dataset.fieldKey] = field.textContent.trim();
+    });
+    elements.content.querySelectorAll(".task-checkbox").forEach((checkbox) => {
+      checks[checkbox.dataset.checkKey] = checkbox.checked;
+    });
+    elements.content.querySelectorAll(".record-editable-cell").forEach((cell) => {
+      cells[cell.dataset.cellKey] = cell.textContent.trim();
+    });
+    return {
+      schema: "europlan-cwps-record-v1",
+      documentId: doc.id,
+      documentTitle: doc.title,
+      documentRevision: doc.revision,
+      layoutVersion: doc.id === "RA-001" ? "ra-scoring-v2" : "standard-v1",
+      packageRevision: manifest.revision,
+      savedAt: new Date().toISOString(),
+      values,
+      checks,
+      cells
+    };
+  }
+
+  function applyRecordData(record, message = "Saved record loaded.") {
+    if (!record || record.schema !== "europlan-cwps-record-v1" || !byId.has(record.documentId)) {
+      throw new Error("This is not a valid Europlan CWPS record file.");
+    }
+    if (record.documentId === "RA-001" && record.layoutVersion !== "ra-scoring-v2") {
+      throw new Error("This record uses the earlier RA layout and cannot be mapped safely. Re-enter it in the current L/I scoring matrix.");
+    }
+    if (record.documentId !== state.activeId) {
+      openDocument(record.documentId);
+      requestAnimationFrame(() => applyRecordData(record, message));
+      return;
+    }
+    setRecordMode(true, false);
+    elements.content.querySelectorAll(".editable-placeholder").forEach((field) => {
+      field.textContent = record.values?.[field.dataset.fieldKey] || "";
+    });
+    elements.content.querySelectorAll(".task-checkbox").forEach((checkbox) => {
+      checkbox.checked = Boolean(record.checks?.[checkbox.dataset.checkKey]);
+    });
+    elements.content.querySelectorAll(".record-editable-cell").forEach((cell) => {
+      if (Object.hasOwn(record.cells || {}, cell.dataset.cellKey)) cell.textContent = record.cells[cell.dataset.cellKey];
+    });
+    updateAllRiskScores();
+    const revisionNote = record.documentRevision !== byId.get(state.activeId).revision
+      ? ` Record revision ${record.documentRevision} differs from current revision ${byId.get(state.activeId).revision}.`
+      : "";
+    setRecordStatus(`${message}${revisionNote}`, revisionNote ? "warning" : "success");
+  }
+
+  function normalizeFeedbackPayload(parsed) {
+    // Accepts a single record (as produced by "Download JSON"), a bundle
+    // { schema: "europlan-cwps-feedback-bundle-v1", records: [...] } covering
+    // several documents/reviewers, or a bare array of records.
+    if (parsed && typeof parsed === "object" && Array.isArray(parsed.records)) return parsed.records;
+    if (Array.isArray(parsed)) return parsed;
+    return [parsed];
+  }
+
+  function mergeFeedbackRecord(record) {
+    if (!record || record.schema !== "europlan-cwps-record-v1" || !byId.has(record.documentId)) {
+      return { ok: false, reason: `${record && record.documentId ? record.documentId : "Unknown item"}: not a recognised CWPS record - skipped.` };
+    }
+    if (record.documentId === "RA-001" && record.layoutVersion !== "ra-scoring-v2") {
+      return { ok: false, reason: "RA-001: uses an earlier RA layout and was skipped." };
+    }
+    const doc = byId.get(record.documentId);
+    const key = recordStorageKey(record.documentId);
+    let existing = null;
+    try { existing = JSON.parse(storage.get(key) || "null"); } catch { existing = null; }
+    if (!existing || existing.schema !== "europlan-cwps-record-v1") {
+      existing = {
+        schema: "europlan-cwps-record-v1",
+        documentId: record.documentId,
+        documentTitle: doc.title,
+        documentRevision: doc.revision,
+        layoutVersion: record.layoutVersion,
+        packageRevision: manifest.revision,
+        values: {},
+        checks: {},
+        cells: {}
+      };
+    }
+    const merged = {
+      ...existing,
+      documentTitle: doc.title,
+      documentRevision: doc.revision,
+      savedAt: new Date().toISOString(),
+      values: { ...(existing.values || {}) },
+      checks: { ...(existing.checks || {}) },
+      cells: { ...(existing.cells || {}) }
+    };
+    // Only the keys actually present in the incoming record are written.
+    // Any locally saved fields, checks or cells not mentioned in this
+    // import - for this document or any other - are left untouched.
+    let fieldCount = 0;
+    for (const [fieldKey, value] of Object.entries(record.values || {})) { merged.values[fieldKey] = value; fieldCount++; }
+    for (const [checkKey, value] of Object.entries(record.checks || {})) { merged.checks[checkKey] = Boolean(value); fieldCount++; }
+    for (const [cellKey, value] of Object.entries(record.cells || {})) { merged.cells[cellKey] = value; fieldCount++; }
+    if (!storage.set(key, JSON.stringify(merged))) {
+      return { ok: false, reason: `${record.documentId}: browser storage unavailable on this device - could not merge.` };
+    }
+    return { ok: true, documentId: record.documentId, fieldCount };
+  }
+
+  async function importFeedbackFiles(fileList) {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    let mergedFields = 0;
+    const touchedDocs = new Set();
+    const problems = [];
+    for (const file of files) {
+      let parsed;
+      try { parsed = JSON.parse(await file.text()); }
+      catch { problems.push(`${file.name}: not valid JSON.`); continue; }
+      for (const record of normalizeFeedbackPayload(parsed)) {
+        const result = mergeFeedbackRecord(record);
+        if (result.ok) { mergedFields += result.fieldCount; touchedDocs.add(result.documentId); }
+        else problems.push(result.reason);
+      }
+    }
+    if (touchedDocs.has(state.activeId)) openDocument(state.activeId);
+    const summary = touchedDocs.size
+      ? `Imported feedback into ${touchedDocs.size} document${touchedDocs.size === 1 ? "" : "s"} (${mergedFields} field${mergedFields === 1 ? "" : "s"} updated). Only the received entries were changed - other local entries on this device were left as-is.`
+      : "No usable feedback records were found in the selected file(s).";
+    const message = problems.length ? `${summary} Skipped ${problems.length}: ${problems.join(" ")}` : summary;
+    if (!elements.recordToolbar.hidden) setRecordStatus(message, touchedDocs.size ? "success" : "warning");
+    alert(message);
+  }
+
+  function saveDraft(announce = true) {
+    if (elements.recordToolbar.hidden) return;
+    const record = collectRecord();
+    if (storage.set(recordStorageKey(record.documentId), JSON.stringify(record))) {
+      if (announce) setRecordStatus(`Draft saved in this browser at ${new Date().toLocaleTimeString()}. Download a copy for reliable retention.`, "success");
+    } else {
+      setRecordStatus("Browser draft storage is unavailable for this local file. Use Download JSON or Download copy.", "warning");
+    }
+  }
+
+  function scheduleDraftSave() {
+    if (!state.editing || !storage.available) return;
+    clearTimeout(state.autoSaveTimer);
+    state.autoSaveTimer = setTimeout(() => saveDraft(false), 500);
+  }
+
+  function safeFilePart(value) {
+    return String(value).replace(/[^a-z0-9_-]+/gi, "-").replace(/^-|-$/g, "");
+  }
+
+  function downloadBlob(filename, content, type) {
+    const url = URL.createObjectURL(new Blob([content], { type }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function downloadRecordJson() {
+    const record = collectRecord();
+    const date = record.savedAt.slice(0, 10).replaceAll("-", "");
+    downloadBlob(`${safeFilePart(record.documentId)}_Rev${safeFilePart(record.documentRevision)}_${date}.json`, `${JSON.stringify(record, null, 2)}\n`, "application/json");
+    setRecordStatus("Editable JSON record downloaded. Use Open saved record to continue later.", "success");
+  }
+
+  function downloadHtmlCopy() {
+    const record = collectRecord();
+    const copy = elements.content.cloneNode(true);
+    copy.querySelectorAll(".editable-placeholder").forEach((field) => {
+      field.removeAttribute("contenteditable");
+      field.removeAttribute("role");
+      field.removeAttribute("aria-readonly");
+      if (!field.textContent.trim()) field.textContent = "UNRESOLVED";
+    });
+    copy.querySelectorAll(".record-editable-cell").forEach((cell) => {
+      cell.removeAttribute("contenteditable");
+      cell.removeAttribute("aria-readonly");
+    });
+    copy.querySelectorAll("input[type=checkbox]").forEach((checkbox) => {
+      if (checkbox.checked) checkbox.setAttribute("checked", "checked");
+      else checkbox.removeAttribute("checked");
+      checkbox.setAttribute("disabled", "disabled");
+    });
+    const embedded = JSON.stringify(record).replace(/</g, "\\u003c");
+    const html = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escapeHtml(record.documentId)} - ${escapeHtml(record.documentTitle)}</title>
+<style>body{max-width:900px;margin:40px auto;padding:0 24px;color:#172230;font:15px/1.55 Arial,sans-serif}header{border-bottom:2px solid #183b5b;margin-bottom:24px}h1{margin-bottom:5px;color:#0b1d34}h2{margin-top:1.8em;border-bottom:1px solid #ccd4dc;padding-bottom:.3em}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #aeb9c3;padding:7px;vertical-align:top}th{background:#eef2f5;text-align:left}.editable-placeholder{display:inline-block;min-width:7em;padding:2px 5px;background:#fff1a8;border-bottom:2px solid #c29b00;font-weight:700}.risk-input{min-width:2em;text-align:center}.risk-score-output{background:transparent;border:0}.risk-very-low{background:#00b050!important;color:#fff}.risk-low{background:#92d050!important;color:#000}.risk-medium{background:#ffff00!important;color:#000}.risk-medium-high{background:#ffc000!important;color:#000}.risk-high{background:#f00!important;color:#fff}.risk-very-high{background:#c00000!important;color:#fff}.risk-unrated{background:#fff1a8!important;color:#392c00}.table-wrap{overflow:auto}code{background:#eef2f5;padding:1px 4px}footer{margin-top:30px;padding-top:12px;border-top:1px solid #ccd4dc;color:#5d6874;font-size:11px}@media print{body{margin:0;max-width:none}@page{size:A4;margin:16mm}}</style></head>
+<body><header><h1>${escapeHtml(record.documentId)} - ${escapeHtml(record.documentTitle)}</h1><p>Revision ${escapeHtml(record.documentRevision)} · Completed copy saved ${escapeHtml(new Date(record.savedAt).toLocaleString())}</p></header>
+${copy.innerHTML}<footer>Europlan CWPS record copy. The controlled master remains in the CWPS package.</footer>
+<script type="application/json" id="cwps-record-data">${embedded}<\/script></body></html>`;
+    const date = record.savedAt.slice(0, 10).replaceAll("-", "");
+    downloadBlob(`${safeFilePart(record.documentId)}_Rev${safeFilePart(record.documentRevision)}_${date}.html`, html, "text/html");
+    setRecordStatus("Standalone completed HTML copy downloaded. It can be opened or printed independently.", "success");
+  }
+
+  function clearRecordEntries() {
+    if (!confirm("Clear all entries for this document? The Markdown master will not be changed.")) return;
+    setRecordMode(true, false);
+    elements.content.querySelectorAll(".editable-placeholder").forEach((field) => { field.textContent = ""; });
+    elements.content.querySelectorAll(".task-checkbox").forEach((checkbox) => { checkbox.checked = false; });
+    elements.content.querySelectorAll(".record-editable-cell").forEach((cell) => { cell.textContent = cell.dataset.originalValue || ""; });
+    updateAllRiskScores();
+    storage.remove(recordStorageKey(state.activeId));
+    setRecordStatus("Entries cleared. The controlled Markdown master was not changed.", "warning");
+  }
+
+  function setupRecordEditor(doc) {
+    clearTimeout(state.autoSaveTimer);
+    state.editing = false;
+    const hasOpenItems = elements.content.querySelectorAll("mark.placeholder").length > 0;
+    const isForm = doc.category === "Forms";
+    elements.recordToolbar.hidden = !hasOpenItems && !isForm;
+    if (elements.recordToolbar.hidden) return;
+
+    setRecordMode(isForm, false);
+    setupRiskAssessmentEditor();
+    setRecordStatus(storage.available
+      ? (doc.id === "RA-001" ? "The risk table is editable. Enter L and I from 1 to 5; scores and legend colours calculate automatically. Download a copy for reliable retention." : "Yellow edits are record-specific and do not change the Markdown master. Browser drafts are best-effort; download a copy for reliable retention.")
+      : (doc.id === "RA-001" ? "The risk table is editable and scores calculate automatically. Browser storage is unavailable; use the download controls." : "Yellow edits are record-specific and do not change the Markdown master. Browser storage is unavailable; use the download controls."));
+
+    const saved = storage.get(recordStorageKey(doc.id));
+    if (saved) {
+      try { applyRecordData(JSON.parse(saved), "Browser draft restored."); }
+      catch { storage.remove(recordStorageKey(doc.id)); }
+    }
+  }
+
+  function setTheme(theme) {
+    state.theme = theme;
+    document.documentElement.dataset.theme = theme;
+    storage.set("cwps-theme", theme);
+    elements.theme.setAttribute("aria-label", theme === "dark" ? "Switch to light theme" : "Switch to dark theme");
+    elements.theme.title = theme === "dark" ? "Light theme" : "Dark theme";
+  }
+
+  function openMenu() {
+    document.body.classList.add("nav-open");
+    elements.menu.setAttribute("aria-expanded", "true");
+  }
+
+  function closeMenu() {
+    document.body.classList.remove("nav-open");
+    elements.menu.setAttribute("aria-expanded", "false");
+  }
+
+  function countPlaceholders() {
+    return Object.values(data.documents).reduce((total, markdown) => total + ((markdown.match(/YELLOW PLACEHOLDER/g) || []).length), 0);
+  }
+
+  elements.search.addEventListener("input", (event) => runSearch(event.target.value));
+  elements.clearSearch.addEventListener("click", () => { elements.search.value = ""; runSearch(""); elements.search.focus(); });
+  elements.editRecord.addEventListener("click", () => setRecordMode(!state.editing));
+  elements.saveDraft.addEventListener("click", () => saveDraft());
+  elements.downloadRecord.addEventListener("click", downloadRecordJson);
+  elements.downloadHtml.addEventListener("click", downloadHtmlCopy);
+  elements.openRecord.addEventListener("click", () => elements.recordFile.click());
+  elements.importFeedback.addEventListener("click", () => elements.feedbackFile.click());
+  elements.clearRecord.addEventListener("click", clearRecordEntries);
+  elements.recordFile.addEventListener("change", async () => {
+    const file = elements.recordFile.files?.[0];
+    if (!file) return;
+    try {
+      applyRecordData(JSON.parse(await file.text()));
+    } catch (error) {
+      setRecordStatus(error instanceof Error ? error.message : "The selected record could not be opened.", "warning");
+    } finally {
+      elements.recordFile.value = "";
+    }
+  });
+  elements.feedbackFile.addEventListener("change", async () => {
+    try {
+      await importFeedbackFiles(elements.feedbackFile.files);
+    } finally {
+      elements.feedbackFile.value = "";
+    }
+  });
+  elements.content.addEventListener("input", (event) => {
+    if (event.target.closest?.(".risk-input")) updateRiskRow(event.target.closest("tr"));
+    scheduleDraftSave();
+  });
+  elements.content.addEventListener("change", scheduleDraftSave);
+  elements.theme.addEventListener("click", () => setTheme(state.theme === "dark" ? "light" : "dark"));
+  elements.print.addEventListener("click", () => window.print());
+  elements.menu.addEventListener("click", () => document.body.classList.contains("nav-open") ? closeMenu() : openMenu());
+  elements.scrim.addEventListener("click", closeMenu);
+  window.addEventListener("hashchange", () => {
+    const route = parseRoute();
+    if (route.id === state.activeId && route.section) {
+      document.getElementById(route.section)?.scrollIntoView({ block: "start" });
+    } else openDocument(route.id, "", route.section);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "/" && !/input|textarea|select/i.test(document.activeElement.tagName)) {
+      event.preventDefault(); elements.search.focus();
+    }
+    if (event.key === "Escape") {
+      closeMenu();
+      if (elements.search.value) { elements.search.value = ""; runSearch(""); }
+    }
+  });
+
+  elements.count.textContent = `${documents.length} documents`;
+  elements.placeholderCount.textContent = `${countPlaceholders()} open items`;
+  setTheme(state.theme);
+  const initial = parseRoute();
+  openDocument(initial.id, "", initial.section);
+})();
+
+</script>
+</body>
+</html>
