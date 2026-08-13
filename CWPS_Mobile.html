@@ -145,16 +145,26 @@ html[data-theme="dark"] .editable-placeholder { color: #fff5bd; }
 .record-editable-cell { cursor: text; transition: background-color .15s ease, box-shadow .15s ease; }
 .record-mode .record-editable-cell { background: color-mix(in srgb, var(--yellow) 34%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--yellow-border) 48%, transparent); }
 .record-editable-cell:focus { outline: 3px solid color-mix(in srgb, var(--blue) 28%, transparent); outline-offset: -3px; }
-.row-delete-cell { display: none; text-align: center; vertical-align: middle; white-space: nowrap; }
-.record-mode .row-delete-cell { display: table-cell; }
-.row-delete-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; color: var(--red); background: transparent; border: 1px solid color-mix(in srgb, var(--red) 45%, transparent); border-radius: 6px; font-size: 15px; line-height: 1; cursor: pointer; }
-.row-delete-btn:hover { color: #fff; background: var(--red); }
 .row-add-control { display: none; }
 .record-mode .row-add-control { display: table-row; }
 .row-add-control td { padding: 8px; background: var(--surface-2); border-top: 1px dashed var(--line-strong); }
 .row-add-btn { padding: 6px 12px; color: var(--blue); background: var(--surface); border: 1px dashed var(--line-strong); border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; }
 .row-add-btn:hover { border-color: var(--blue); }
-@media print { .row-delete-cell, .row-add-control { display: none !important; } }
+@media print { .row-add-control, .row-actions-cell { display: none !important; } }
+.row-actions-cell { display: none; text-align: center; vertical-align: middle; white-space: nowrap; width: 1%; }
+.record-mode .row-actions-cell { display: table-cell; }
+.row-menu-btn { position: relative; width: 30px; height: 30px; padding: 0; color: var(--blue); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; font-size: 15px; line-height: 1; cursor: pointer; }
+.row-menu-btn:hover { border-color: var(--blue); }
+.row-menu-btn-busy { opacity: 0.5; pointer-events: none; }
+.row-menu-badge { position: absolute; top: -6px; right: -6px; min-width: 15px; height: 15px; padding: 0 3px; font-size: 10px; line-height: 15px; color: #fff; background: var(--blue); border-radius: 8px; }
+.row-menu { position: fixed; z-index: 50; display: flex; flex-direction: column; min-width: 190px; max-width: min(300px, calc(100vw - 16px)); padding: 6px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.28); }
+.row-menu-item { display: block; width: 100%; padding: 9px 10px; text-align: left; color: var(--text); background: none; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; }
+.row-menu-item:hover { background: var(--surface-2); }
+.row-menu-danger { color: var(--red); }
+.row-menu-attachment-chip { display: flex; align-items: center; gap: 4px; padding: 2px; }
+.row-menu-attachment-view { flex: 1; overflow: hidden; padding: 8px 10px; text-align: left; text-overflow: ellipsis; white-space: nowrap; color: var(--text); background: none; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.row-menu-attachment-view:hover { background: var(--surface-2); }
+.row-menu-attachment-remove { flex-shrink: 0; width: 22px; height: 22px; padding: 0; color: var(--red); background: none; border: 1px solid color-mix(in srgb, var(--red) 45%, transparent); border-radius: 50%; font-size: 10px; cursor: pointer; }
 .risk-assessment-table { min-width: 1480px; }
 .risk-assessment-table th:nth-child(n+5):nth-child(-n+10), .risk-assessment-table td:nth-child(n+5):nth-child(-n+10) { min-width: 72px; text-align: center; vertical-align: middle; }
 .risk-input { min-width: 2.2em; text-align: center; }
@@ -253,6 +263,7 @@ html[data-theme="dark"] .result-card strong { color: var(--ink); }
 }
 
 </style>
+<script src="https://cdn.jsdelivr.net/npm/heic-to@1.5.2/dist/iife/heic-to.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#document">Skip to document</a>
@@ -430,7 +441,8 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     activeId: null,
     theme: storage.get("cwps-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
     editing: false,
-    autoSaveTimer: null
+    autoSaveTimer: null,
+    attachments: {}
   };
 
   const elements = {
@@ -910,6 +922,176 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     });
   }
 
+  // --- Row attachments: up to 2 files per row, stored in IndexedDB (not
+  // localStorage, which is far too small for photos), with only small
+  // metadata (id/filename/mime/size) kept in the JSON record. Download JSON
+  // and Import feedback JSON embed the actual bytes as base64 only at that
+  // export/import boundary, so attachments still travel with a record the
+  // same way every other field already does.
+  let attachmentDbPromise = null;
+  function openAttachmentDb() {
+    if (attachmentDbPromise) return attachmentDbPromise;
+    attachmentDbPromise = new Promise((resolve, reject) => {
+      if (!window.indexedDB) { reject(new Error("IndexedDB unavailable")); return; }
+      const req = indexedDB.open("cwps-attachments", 1);
+      req.onupgradeneeded = () => { req.result.createObjectStore("files", { keyPath: "id" }); };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return attachmentDbPromise;
+  }
+  function idbPutAttachment(entry) {
+    return openAttachmentDb().then((db) => new Promise((resolve, reject) => {
+      const tx = db.transaction("files", "readwrite");
+      tx.objectStore("files").put(entry);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    }));
+  }
+  function idbGetAttachment(id) {
+    return openAttachmentDb().then((db) => new Promise((resolve, reject) => {
+      const tx = db.transaction("files", "readonly");
+      const req = tx.objectStore("files").get(id);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    }));
+  }
+  function idbDeleteAttachment(id) {
+    return openAttachmentDb().then((db) => new Promise((resolve, reject) => {
+      const tx = db.transaction("files", "readwrite");
+      tx.objectStore("files").delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    })).catch(() => {});
+  }
+
+  function base64ToBlob(base64, mime) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  }
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(String(reader.result || "").split(",")[1] || "");
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function compressImageBlob(blob, maxDim = 1600, quality = 0.72) {
+    const bitmap = await createImageBitmap(blob);
+    let { width, height } = bitmap;
+    if (width > maxDim || height > maxDim) {
+      const scale = maxDim / Math.max(width, height);
+      width = Math.max(1, Math.round(width * scale));
+      height = Math.max(1, Math.round(height * scale));
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, width, height);
+    bitmap.close?.();
+    return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+  }
+
+  // Runs any picked file through: HEIC/HEIF -> JPEG conversion (silent, if
+  // needed and the conversion library loaded), then compression for images.
+  // PDFs pass through untouched. Any failure at any step falls back to
+  // storing the original file with a generic file icon rather than losing it.
+  async function processAttachmentFile(file) {
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    if (isPdf) return { blob: file, mime: "application/pdf", filename: file.name, isImage: false };
+
+    const looksHeic = /\.(heic|heif)$/i.test(file.name) || /^image\/hei[cf]/i.test(file.type || "");
+    let workingBlob = file;
+    let filename = file.name;
+    let mime = file.type || "application/octet-stream";
+
+    if (looksHeic && window.HeicTo) {
+      try {
+        const confirmed = await window.HeicTo.isHeic(file);
+        if (confirmed) {
+          workingBlob = await window.HeicTo({ blob: file, type: "image/jpeg", quality: 0.85 });
+          mime = "image/jpeg";
+          filename = filename.replace(/\.(heic|heif)$/i, ".jpg");
+        }
+      } catch {
+        // Conversion failed - fall through and store the original file as-is.
+        return { blob: file, mime: file.type || "application/octet-stream", filename: file.name, isImage: false };
+      }
+    }
+
+    const isImageType = /^image\//.test(mime) || /\.(jpe?g|png|gif|webp|heic|heif)$/i.test(filename);
+    if (isImageType) {
+      try {
+        const compressed = await compressImageBlob(workingBlob);
+        if (compressed) return { blob: compressed, mime: "image/jpeg", filename, isImage: true };
+      } catch { /* compression failed - keep the working blob as-is below */ }
+    }
+    return { blob: workingBlob, mime, filename, isImage: isImageType };
+  }
+
+  function attachmentSlotKey(tableKey, rowKey, slot) { return `${tableKey}:${rowKey}:${slot}`; }
+
+  function pickAttachmentFile(tableKey, rowKey, slot) {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*,.heic,.heif,application/pdf,.pdf";
+    input.style.display = "none";
+    document.body.appendChild(input);
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0];
+      input.remove();
+      if (file) await handleAttachmentPicked(tableKey, rowKey, slot, file);
+    });
+    input.click();
+  }
+
+  async function handleAttachmentPicked(tableKey, rowKey, slot, file) {
+    const btn = elements.content.querySelector(`.row-menu-btn[data-table-key="${CSS.escape(tableKey)}"][data-row-key="${CSS.escape(rowKey)}"]`);
+    btn?.classList.add("row-menu-btn-busy");
+    try {
+      const processed = await processAttachmentFile(file);
+      const id = `att-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+      await idbPutAttachment({ id, blob: processed.blob });
+      state.attachments[attachmentSlotKey(tableKey, rowKey, slot)] = { id, filename: processed.filename, mime: processed.mime, size: processed.blob.size };
+      refreshRowMenuBadge(tableKey, rowKey);
+      scheduleDraftSave();
+    } catch (err) {
+      alert(`Could not attach that file: ${err?.message || "unknown error"}`);
+    } finally {
+      btn?.classList.remove("row-menu-btn-busy");
+    }
+  }
+
+  function removeAttachment(tableKey, rowKey, slot) {
+    const key = attachmentSlotKey(tableKey, rowKey, slot);
+    const meta = state.attachments[key];
+    if (!meta) return;
+    delete state.attachments[key];
+    idbDeleteAttachment(meta.id);
+    refreshRowMenuBadge(tableKey, rowKey);
+    scheduleDraftSave();
+  }
+
+  async function openAttachmentThumb(attachmentId) {
+    const stored = await idbGetAttachment(attachmentId).catch(() => null);
+    if (!stored?.blob) { alert("That attachment could not be found in this browser's storage."); return; }
+    const url = URL.createObjectURL(stored.blob);
+    if (/^image\//.test(stored.blob.type)) {
+      window.open(url, "_blank");
+    } else {
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "attachment";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+  }
+
   function tableColumnCount(table) {
     const headerRow = table.tHead?.rows?.[0];
     if (headerRow) return headerRow.cells.length;
@@ -928,7 +1110,8 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
   // element, so it must get its own explicit contentEditable and fieldKey -
   // leaving the <td> as a plain, non-editable container avoids a nested
   // double-contentEditable region, which is unreliable for typing/selection.
-  function buildRiskCell(cellIndex, className, tableKey, rowKey, ariaPrefix) {
+  // sourceField, if given, prefills the value (used when duplicating a row).
+  function buildRiskCell(cellIndex, className, tableKey, rowKey, ariaPrefix, sourceField = null) {
     const cell = document.createElement("td");
     const field = document.createElement("span");
     field.className = `editable-placeholder risk-input ${className}`;
@@ -940,37 +1123,126 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     field.contentEditable = isScore ? "false" : (state.editing ? "true" : "false");
     field.setAttribute("aria-readonly", isScore ? "true" : (state.editing ? "false" : "true"));
     if (isScore) { field.classList.add("risk-score-output"); cell.classList.add("risk-score-cell"); }
+    else if (sourceField) { field.textContent = sourceField.textContent.trim(); }
     cell.appendChild(field);
     return cell;
   }
 
-  function makeRowDeleteCell(tableKey, rowKey) {
-    const deleteCell = document.createElement("td");
-    deleteCell.className = "row-delete-cell";
-    const deleteBtn = document.createElement("button");
-    deleteBtn.type = "button";
-    deleteBtn.className = "row-delete-btn";
-    deleteBtn.dataset.rowKey = rowKey;
-    deleteBtn.dataset.tableKey = tableKey;
-    deleteBtn.setAttribute("aria-label", "Delete this row");
-    deleteBtn.textContent = "\u2715";
-    deleteCell.appendChild(deleteBtn);
-    return deleteCell;
+  // Single consolidated row-actions button ("\u22ee") replacing separate
+  // delete/attach columns - a table that already needs sideways scrolling on
+  // a phone shouldn't grow another column or two for row actions. Opening it
+  // shows Duplicate row / Attach file (with any existing attachments as
+  // removable chips) / Delete row.
+  function makeRowActionsCell(tableKey, rowKey) {
+    const cell = document.createElement("td");
+    cell.className = "row-actions-cell";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "row-menu-btn";
+    btn.dataset.tableKey = tableKey;
+    btn.dataset.rowKey = rowKey;
+    btn.setAttribute("aria-label", "Row actions");
+    btn.textContent = "\u22EE";
+    cell.appendChild(btn);
+    return cell;
   }
 
-  function createTableRow(table, rowKey) {
+  function refreshRowMenuBadge(tableKey, rowKey) {
+    const btn = elements.content.querySelector(`.row-menu-btn[data-table-key="${CSS.escape(tableKey)}"][data-row-key="${CSS.escape(rowKey)}"]`);
+    if (!btn) return;
+    const count = [0, 1].filter((slot) => state.attachments[attachmentSlotKey(tableKey, rowKey, slot)]).length;
+    btn.innerHTML = count > 0 ? `\u22EE<span class="row-menu-badge">${count}</span>` : "\u22EE";
+  }
+
+  let openRowMenuEl = null;
+  function closeRowMenu() {
+    if (openRowMenuEl) { openRowMenuEl.remove(); openRowMenuEl = null; }
+  }
+  function openRowMenu(triggerBtn) {
+    const { tableKey, rowKey } = triggerBtn.dataset;
+    if (openRowMenuEl && openRowMenuEl.dataset.tableKey === tableKey && openRowMenuEl.dataset.rowKey === rowKey) {
+      closeRowMenu();
+      return;
+    }
+    closeRowMenu();
+    const menu = document.createElement("div");
+    menu.className = "row-menu";
+    menu.dataset.tableKey = tableKey;
+    menu.dataset.rowKey = rowKey;
+
+    const dupBtn = document.createElement("button");
+    dupBtn.type = "button";
+    dupBtn.className = "row-menu-item";
+    dupBtn.dataset.action = "duplicate";
+    dupBtn.textContent = "\u23D0 Duplicate row";
+    menu.appendChild(dupBtn);
+
+    let attachedCount = 0;
+    for (let slot = 0; slot < 2; slot++) {
+      const meta = state.attachments[attachmentSlotKey(tableKey, rowKey, slot)];
+      if (!meta) continue;
+      attachedCount++;
+      const chip = document.createElement("div");
+      chip.className = "row-menu-attachment-chip";
+      const viewBtn = document.createElement("button");
+      viewBtn.type = "button";
+      viewBtn.className = "row-menu-attachment-view";
+      viewBtn.dataset.attachmentId = meta.id;
+      viewBtn.textContent = `\uD83D\uDCCE ${meta.filename}`;
+      const rmBtn = document.createElement("button");
+      rmBtn.type = "button";
+      rmBtn.className = "row-menu-attachment-remove";
+      rmBtn.dataset.action = "remove-attachment";
+      rmBtn.dataset.slot = String(slot);
+      rmBtn.setAttribute("aria-label", "Remove this attachment");
+      rmBtn.textContent = "\u2715";
+      chip.appendChild(viewBtn);
+      chip.appendChild(rmBtn);
+      menu.appendChild(chip);
+    }
+    if (attachedCount < 2) {
+      const attachBtn = document.createElement("button");
+      attachBtn.type = "button";
+      attachBtn.className = "row-menu-item";
+      attachBtn.dataset.action = "attach";
+      attachBtn.textContent = `\uD83D\uDCCE Attach file (${attachedCount}/2)`;
+      menu.appendChild(attachBtn);
+    }
+
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "row-menu-item row-menu-danger";
+    delBtn.dataset.action = "delete";
+    delBtn.textContent = "\u2715 Delete row";
+    menu.appendChild(delBtn);
+
+    document.body.appendChild(menu);
+    const rect = triggerBtn.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+    let left = Math.min(rect.right - menuRect.width, window.innerWidth - menuRect.width - 8);
+    left = Math.max(8, left);
+    let top = rect.bottom + 4;
+    if (top + menuRect.height > window.innerHeight - 8) top = rect.top - menuRect.height - 4;
+    menu.style.left = `${left}px`;
+    menu.style.top = `${Math.max(8, top)}px`;
+    openRowMenuEl = menu;
+  }
+
+  function createTableRow(table, rowKey, sourceRow = null) {
     const tableKey = table.dataset.tableKey;
     const columnCount = Number(table.dataset.columnCount) || tableColumnCount(table);
     const tbody = table.tBodies[0];
     if (!tbody || !columnCount) return null;
     const isRiskTable = table.classList.contains("risk-assessment-table") && columnCount === 11;
+    const sourceCells = sourceRow ? [...sourceRow.cells] : null;
     const row = document.createElement("tr");
     row.dataset.rowKey = rowKey;
     row.dataset.added = "true";
     for (let cellIndex = 0; cellIndex < columnCount; cellIndex++) {
       const riskRole = isRiskTable ? RISK_ROLE_BY_INDEX[cellIndex] : null;
       if (riskRole) {
-        row.appendChild(buildRiskCell(cellIndex, riskRole, tableKey, rowKey, "New row"));
+        const sourceField = sourceCells?.[cellIndex]?.querySelector(".risk-input:not(.risk-score-output)") || null;
+        row.appendChild(buildRiskCell(cellIndex, riskRole, tableKey, rowKey, "New row", sourceField));
         continue;
       }
       const cell = document.createElement("td");
@@ -979,9 +1251,10 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
       cell.dataset.originalValue = "";
       cell.contentEditable = state.editing ? "true" : "false";
       cell.setAttribute("aria-readonly", state.editing ? "false" : "true");
+      if (sourceCells?.[cellIndex]) cell.textContent = sourceCells[cellIndex].textContent.trim();
       row.appendChild(cell);
     }
-    row.appendChild(makeRowDeleteCell(tableKey, rowKey));
+    row.appendChild(makeRowActionsCell(tableKey, rowKey));
     const addControlRow = tbody.querySelector(":scope > tr.row-add-control");
     if (addControlRow) tbody.insertBefore(row, addControlRow);
     else tbody.appendChild(row);
@@ -1000,8 +1273,8 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
       if (!tbody || !columnCount) return;
       [...tbody.rows].forEach((row, rowIndex) => {
         if (!row.dataset.rowKey) row.dataset.rowKey = `orig-${rowIndex}`;
-        if (row.cells.length < columnCount || row.querySelector(".row-delete-cell")) return;
-        row.appendChild(makeRowDeleteCell(tableKey, row.dataset.rowKey));
+        if (row.cells.length < columnCount || row.querySelector(".row-actions-cell")) return;
+        row.appendChild(makeRowActionsCell(tableKey, row.dataset.rowKey));
       });
       if (!tbody.querySelector(":scope > tr.row-add-control")) {
         const controlRow = document.createElement("tr");
@@ -1023,9 +1296,27 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
   function addTableRow(tableKey) {
     const table = elements.content.querySelector(`table[data-table-key="${CSS.escape(tableKey)}"]`);
     if (!table) return;
+    const tbody = table.tBodies[0];
+    // New rows duplicate the row they're added after (all cell text and, on
+    // RA-001, the L/I values too) rather than starting blank - most register
+    // rows repeat almost everything except one or two columns (e.g. Person),
+    // so this removes nearly all the retyping for entries like "three
+    // different people holding the same qualification".
+    const dataRows = tbody ? [...tbody.rows].filter((r) => !r.classList.contains("row-add-control")) : [];
+    const sourceRow = dataRows[dataRows.length - 1] || null;
     const rowKey = `add-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-    const row = createTableRow(table, rowKey);
-    row?.querySelector(".record-editable-cell")?.focus();
+    const row = createTableRow(table, rowKey, sourceRow);
+    row?.querySelector(".record-editable-cell, .risk-input:not(.risk-score-output)")?.focus();
+    scheduleDraftSave();
+  }
+
+  function duplicateTableRow(tableKey, rowKey) {
+    const table = elements.content.querySelector(`table[data-table-key="${CSS.escape(tableKey)}"]`);
+    const sourceRow = table?.querySelector(`tr[data-row-key="${CSS.escape(rowKey)}"]`);
+    if (!table || !sourceRow) return;
+    const newRowKey = `add-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    const row = createTableRow(table, newRowKey, sourceRow);
+    row?.querySelector(".record-editable-cell, .risk-input:not(.risk-score-output)")?.focus();
     scheduleDraftSave();
   }
 
@@ -1033,6 +1324,7 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     const table = elements.content.querySelector(`table[data-table-key="${CSS.escape(tableKey)}"]`);
     const row = table?.querySelector(`tr[data-row-key="${CSS.escape(rowKey)}"]`);
     if (!row) return;
+    for (let slot = 0; slot < 2; slot++) removeAttachment(tableKey, rowKey, slot);
     if (row.dataset.added === "true") row.remove();
     else { row.dataset.deleted = "true"; row.style.display = "none"; }
     scheduleDraftSave();
@@ -1092,7 +1384,8 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
       savedAt: new Date().toISOString(),
       values,
       checks,
-      cells
+      cells,
+      attachments: { ...state.attachments }
     };
   }
 
@@ -1110,12 +1403,18 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     }
     setRecordMode(true, false);
     // Recreate any rows added on this or another device before restoring cell
-    // text, so the target cells exist first.
+    // text, so the target cells (and attachment slots) exist first.
     const rowAddGroups = new Map();
     for (const key of Object.keys(record.cells || {})) {
       const match = /^__rowadd__:([^:]+):([^:]+):c\d+$/.exec(key);
       if (match && !rowAddGroups.has(`${match[1]}::${match[2]}`)) {
         rowAddGroups.set(`${match[1]}::${match[2]}`, { tableKey: match[1], rowKey: match[2] });
+      }
+    }
+    for (const key of Object.keys(record.attachments || {})) {
+      const parts = key.split(":");
+      if (parts.length === 3 && parts[1].startsWith("add-") && !rowAddGroups.has(`${parts[0]}::${parts[1]}`)) {
+        rowAddGroups.set(`${parts[0]}::${parts[1]}`, { tableKey: parts[0], rowKey: parts[1] });
       }
     }
     rowAddGroups.forEach(({ tableKey, rowKey }) => {
@@ -1141,10 +1440,37 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
       if (row) { row.dataset.deleted = "true"; row.style.display = "none"; }
     }
     updateAllRiskScores();
+    restoreAttachmentsFromRecord(record).catch((err) => console.error("Attachment restore failed:", err));
     const revisionNote = record.documentRevision !== byId.get(state.activeId).revision
       ? ` Record revision ${record.documentRevision} differs from current revision ${byId.get(state.activeId).revision}.`
       : "";
     setRecordStatus(`${message}${revisionNote}`, revisionNote ? "warning" : "success");
+  }
+
+  // Populates the in-memory attachment index and thumbnails from a record's
+  // metadata. If an entry carries embedded base64 `data` (an imported
+  // record from another device), the bytes are written into this device's
+  // IndexedDB first. Otherwise the bytes are expected to already be in this
+  // device's own IndexedDB (a normal local draft restore) - if they're
+  // missing (e.g. IndexedDB was cleared), the slot degrades to empty rather
+  // than showing a broken thumbnail.
+  async function restoreAttachmentsFromRecord(record) {
+    for (const [key, meta] of Object.entries(record.attachments || {})) {
+      if (!meta?.id) continue;
+      if (meta.data) {
+        // Imported from another device - write the embedded bytes into this
+        // device's IndexedDB. A normal local restore has no `data` field
+        // since the bytes are already in this device's IndexedDB from when
+        // the file was first attached, so there's nothing to write here.
+        try {
+          const blob = base64ToBlob(meta.data, meta.mime || "application/octet-stream");
+          await idbPutAttachment({ id: meta.id, blob });
+        } catch { continue; }
+      }
+      const [tableKey, rowKey] = key.split(":");
+      state.attachments[key] = { id: meta.id, filename: meta.filename, mime: meta.mime, size: meta.size };
+      refreshRowMenuBadge(tableKey, rowKey);
+    }
   }
 
   function normalizeFeedbackPayload(parsed) {
@@ -1156,7 +1482,7 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     return [parsed];
   }
 
-  function mergeFeedbackRecord(record) {
+  async function mergeFeedbackRecord(record) {
     if (!record || record.schema !== "europlan-cwps-record-v1" || !byId.has(record.documentId)) {
       return { ok: false, reason: `${record && record.documentId ? record.documentId : "Unknown item"}: not a recognised CWPS record - skipped.` };
     }
@@ -1177,7 +1503,8 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
         packageRevision: manifest.revision,
         values: {},
         checks: {},
-        cells: {}
+        cells: {},
+        attachments: {}
       };
     }
     const merged = {
@@ -1187,7 +1514,8 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
       savedAt: new Date().toISOString(),
       values: { ...(existing.values || {}) },
       checks: { ...(existing.checks || {}) },
-      cells: { ...(existing.cells || {}) }
+      cells: { ...(existing.cells || {}) },
+      attachments: { ...(existing.attachments || {}) }
     };
     // Only the keys actually present in the incoming record are written.
     // Any locally saved fields, checks or cells not mentioned in this
@@ -1210,6 +1538,19 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
       if (value === "" && (merged.cells[cellKey] || "") !== "") continue;
       merged.cells[cellKey] = value; fieldCount++;
     }
+    // Attachments are a sparse map - a slot only appears in the export if it
+    // actually has a file, so there's no "blank means untouched" ambiguity
+    // like the fields above: any entry present is written into IndexedDB and
+    // merged in, without needing blank-protection.
+    for (const [attachKey, meta] of Object.entries(record.attachments || {})) {
+      if (!meta?.data) continue;
+      try {
+        const blob = base64ToBlob(meta.data, meta.mime || "application/octet-stream");
+        await idbPutAttachment({ id: meta.id, blob });
+        merged.attachments[attachKey] = { id: meta.id, filename: meta.filename, mime: meta.mime, size: meta.size };
+        fieldCount++;
+      } catch { /* skip a corrupt attachment entry, don't fail the whole import */ }
+    }
     if (!storage.set(key, JSON.stringify(merged))) {
       return { ok: false, reason: `${record.documentId}: browser storage unavailable on this device - could not merge.` };
     }
@@ -1227,7 +1568,7 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
       try { parsed = JSON.parse(await file.text()); }
       catch { problems.push(`${file.name}: not valid JSON.`); continue; }
       for (const record of normalizeFeedbackPayload(parsed)) {
-        const result = mergeFeedbackRecord(record);
+        const result = await mergeFeedbackRecord(record);
         if (result.ok) { mergedFields += result.fieldCount; touchedDocs.add(result.documentId); }
         else problems.push(result.reason);
       }
@@ -1272,8 +1613,21 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function downloadRecordJson() {
+  async function downloadRecordJson() {
     const record = collectRecord();
+    // Embed the actual attachment bytes as base64 only at this export
+    // boundary - the local draft/state only ever holds small metadata plus
+    // an IndexedDB reference, so this is the one place the full file needs
+    // to be read out and inlined for another device to receive it.
+    const enrichedAttachments = {};
+    for (const [attachKey, meta] of Object.entries(record.attachments || {})) {
+      try {
+        const stored = await idbGetAttachment(meta.id);
+        if (stored?.blob) enrichedAttachments[attachKey] = { ...meta, data: await blobToBase64(stored.blob) };
+        else enrichedAttachments[attachKey] = meta;
+      } catch { enrichedAttachments[attachKey] = meta; }
+    }
+    record.attachments = enrichedAttachments;
     const date = record.savedAt.slice(0, 10).replaceAll("-", "");
     downloadBlob(`${safeFilePart(record.documentId)}_Rev${safeFilePart(record.documentRevision)}_${date}.json`, `${JSON.stringify(record, null, 2)}\n`, "application/json");
     setRecordStatus("Editable JSON record downloaded. Use Open saved record to continue later.", "success");
@@ -1283,7 +1637,7 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     const record = collectRecord();
     const copy = elements.content.cloneNode(true);
     copy.querySelectorAll(".row-add-control").forEach((row) => row.remove());
-    copy.querySelectorAll(".row-delete-cell").forEach((cell) => cell.remove());
+    copy.querySelectorAll(".row-actions-cell").forEach((cell) => cell.remove());
     copy.querySelectorAll('tr[data-deleted="true"]').forEach((row) => row.remove());
     copy.querySelectorAll(".editable-placeholder").forEach((field) => {
       field.removeAttribute("contenteditable");
@@ -1321,6 +1675,9 @@ ${copy.innerHTML}<footer>Europlan CWPS record copy. The controlled master remain
     elements.content.querySelectorAll(".record-editable-cell").forEach((cell) => { cell.textContent = cell.dataset.originalValue || ""; });
     elements.content.querySelectorAll('tr[data-added="true"]').forEach((row) => row.remove());
     elements.content.querySelectorAll('tr[data-deleted="true"]').forEach((row) => { row.style.display = ""; delete row.dataset.deleted; });
+    Object.values(state.attachments).forEach((meta) => idbDeleteAttachment(meta.id));
+    state.attachments = {};
+    elements.content.querySelectorAll(".attach-slot").forEach((slotEl) => renderAttachSlotEmpty(slotEl));
     updateAllRiskScores();
     storage.remove(recordStorageKey(state.activeId));
     setRecordStatus("Entries cleared. The controlled Markdown master was not changed.", "warning");
@@ -1329,6 +1686,7 @@ ${copy.innerHTML}<footer>Europlan CWPS record copy. The controlled master remain
   function setupRecordEditor(doc) {
     clearTimeout(state.autoSaveTimer);
     state.editing = false;
+    state.attachments = {};
     const hasOpenItems = elements.content.querySelectorAll("mark.placeholder").length > 0;
     const hasTable = elements.content.querySelectorAll("table").length > 0;
     const isForm = doc.category === "Forms";
@@ -1402,13 +1760,8 @@ ${copy.innerHTML}<footer>Europlan CWPS record copy. The controlled master remain
   elements.content.addEventListener("click", (event) => {
     const addBtn = event.target.closest?.(".row-add-btn");
     if (addBtn) { addTableRow(addBtn.dataset.tableKey); return; }
-    const deleteBtn = event.target.closest?.(".row-delete-btn");
-    if (deleteBtn) {
-      if (confirm("Delete this row? This does not change the Markdown master.")) {
-        deleteTableRow(deleteBtn.dataset.tableKey, deleteBtn.dataset.rowKey);
-      }
-      return;
-    }
+    const menuBtn = event.target.closest?.(".row-menu-btn");
+    if (menuBtn) { openRowMenu(menuBtn); return; }
     // Tapping a field directly (before pressing "Edit yellow items"/"Edit
     // risk assessment") should just start editing it, rather than silently
     // doing nothing - the yellow boxes already look and read as tappable.
@@ -1418,6 +1771,40 @@ ${copy.innerHTML}<footer>Europlan CWPS record copy. The controlled master remain
     setRecordMode(true, false);
     field.focus();
   });
+  document.addEventListener("click", async (event) => {
+    if (openRowMenuEl && !openRowMenuEl.contains(event.target) && !event.target.closest?.(".row-menu-btn")) {
+      closeRowMenu();
+    }
+    const item = event.target.closest?.(".row-menu-item, .row-menu-attachment-view, .row-menu-attachment-remove");
+    if (!item) return;
+    const menu = item.closest(".row-menu");
+    if (!menu) return;
+    const { tableKey, rowKey } = menu.dataset;
+    const action = item.dataset.action;
+    if (item.classList.contains("row-menu-attachment-view")) {
+      closeRowMenu();
+      openAttachmentThumb(item.dataset.attachmentId);
+      return;
+    }
+    if (action === "duplicate") { closeRowMenu(); duplicateTableRow(tableKey, rowKey); return; }
+    if (action === "attach") {
+      const nextSlot = [0, 1].find((slot) => !state.attachments[attachmentSlotKey(tableKey, rowKey, slot)]) ?? 0;
+      closeRowMenu();
+      pickAttachmentFile(tableKey, rowKey, nextSlot);
+      return;
+    }
+    if (action === "remove-attachment") {
+      closeRowMenu();
+      if (confirm("Remove this attachment?")) removeAttachment(tableKey, rowKey, Number(item.dataset.slot));
+      return;
+    }
+    if (action === "delete") {
+      closeRowMenu();
+      if (confirm("Delete this row? This does not change the Markdown master.")) deleteTableRow(tableKey, rowKey);
+    }
+  });
+  window.addEventListener("scroll", closeRowMenu, true);
+  window.addEventListener("resize", closeRowMenu);
   elements.content.addEventListener("input", (event) => {
     if (event.target.closest?.(".risk-input")) updateRiskRow(event.target.closest("tr"));
     scheduleDraftSave();
