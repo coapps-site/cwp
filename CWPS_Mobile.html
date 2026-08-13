@@ -339,8 +339,7 @@ html[data-theme="dark"] .result-card strong { color: var(--ink); }
             <span class="sync-status" id="syncStatusText">Checking shared data...</span>
             <button type="button" id="contributorToggleButton">Unlock contributor access</button>
             <div class="contributor-form" id="contributorForm" hidden>
-              <input type="text" id="contributorNameInput" placeholder="Your name" autocomplete="name" maxlength="60">
-              <input type="password" id="contributorPasscodeInput" placeholder="Passcode" autocomplete="off">
+              <input type="password" id="contributorPasscodeInput" placeholder="Your passcode" autocomplete="off">
               <button type="button" id="contributorUnlockButton">Unlock</button>
               <button type="button" id="contributorCancelButton">Cancel</button>
             </div>
@@ -494,7 +493,6 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     syncStatusText: $("syncStatusText"),
     contributorToggle: $("contributorToggleButton"),
     contributorForm: $("contributorForm"),
-    contributorName: $("contributorNameInput"),
     contributorPasscode: $("contributorPasscodeInput"),
     contributorUnlock: $("contributorUnlockButton"),
     contributorCancel: $("contributorCancelButton"),
@@ -1017,7 +1015,7 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     });
   }
 
-  async function compressImageBlob(blob, maxDim = 1600, quality = 0.72) {
+  async function compressImageBlob(blob, maxDim = 1280, quality = 0.62) {
     const bitmap = await createImageBitmap(blob);
     let { width, height } = bitmap;
     if (width > maxDim || height > maxDim) {
@@ -1132,6 +1130,29 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
   // --- Shared data sync (Apps Script + Google Sheet backend) -------------
   // Contributor credentials are stored on this device only; the passcode is
   // verified server-side on every write, never trusted client-side.
+  // Apps Script Web Apps occasionally return an HTML error/interstitial page
+  // instead of JSON under transient platform hiccups (a known rough edge,
+  // not something client code can fully prevent) - this shows up as a
+  // JSON.parse failure, not a network error, so fetch() alone won't catch
+  // it. Retries a couple of times with a short backoff before giving up,
+  // and reports the real HTTP status if it still isn't JSON, so a
+  // recurring failure is diagnosable rather than just "not valid JSON".
+  async function fetchSyncJson(url, options, attempt = 1) {
+    const resp = await fetch(url, options);
+    const text = await resp.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch {
+      if (attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 600 * attempt));
+        return fetchSyncJson(url, options, attempt + 1);
+      }
+      throw new Error(`Server returned ${resp.status}${resp.statusText ? ` ${resp.statusText}` : ""} (not JSON) after ${attempt} attempts`);
+    }
+    if (!data.ok) throw new Error(data.error || `Server error (status ${resp.status})`);
+    return data;
+  }
+
   function getContributorCreds() {
     try { return JSON.parse(localStorage.getItem("cwps-contributor") || "null"); }
     catch { return null; }
@@ -1248,10 +1269,7 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
   async function syncPullDocument(doc) {
     setSyncStatus("Checking shared data...");
     try {
-      const resp = await fetch(`${SYNC_ENDPOINT}?documentId=${encodeURIComponent(doc.id)}`);
-      if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
-      const data = await resp.json();
-      if (!data.ok) throw new Error(data.error || "Unknown server error");
+      const data = await fetchSyncJson(`${SYNC_ENDPOINT}?documentId=${encodeURIComponent(doc.id)}`);
       const serverRecord = entriesToRecord(doc, data.entries || []);
       const isContributor = !!getContributorCreds();
       const hasAnyData = Object.keys(serverRecord.values).length || Object.keys(serverRecord.checks).length
@@ -1293,18 +1311,16 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     try {
       const entries = collectSyncEntries();
       const attachmentEntries = await collectSyncAttachmentEntries();
-      const payload = { passcode: creds.passcode, updatedBy: creds.name, documentId: doc.id, entries: [...entries, ...attachmentEntries] };
-      const resp = await fetch(SYNC_ENDPOINT, {
+      const payload = { passcode: creds.passcode, documentId: doc.id, entries: [...entries, ...attachmentEntries] };
+      await fetchSyncJson(SYNC_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload)
       });
-      const data = await resp.json();
-      if (!data.ok) throw new Error(data.error || "Sync failed");
       // Newly-uploaded attachments won't have a driveFileId locally yet -
       // pulling the document's entries back tells us which ones now do, so
       // we don't re-upload the same file on the next save.
-      const refreshed = await fetch(`${SYNC_ENDPOINT}?documentId=${encodeURIComponent(doc.id)}`).then((r) => r.json()).catch(() => null);
+      const refreshed = await fetchSyncJson(`${SYNC_ENDPOINT}?documentId=${encodeURIComponent(doc.id)}`).catch(() => null);
       if (refreshed?.ok) {
         for (const entry of refreshed.entries) {
           if (entry.fieldType !== "attachment" || !entry.driveFileId) continue;
@@ -2091,31 +2107,28 @@ ${copy.innerHTML}<footer>Europlan CWPS record copy. The controlled master remain
       return;
     }
     elements.contributorForm.hidden = !elements.contributorForm.hidden;
-    if (!elements.contributorForm.hidden) elements.contributorName.focus();
+    if (!elements.contributorForm.hidden) elements.contributorPasscode.focus();
   });
   elements.contributorCancel.addEventListener("click", () => {
     elements.contributorForm.hidden = true;
   });
   elements.contributorUnlock.addEventListener("click", async () => {
-    const name = elements.contributorName.value.trim();
     const passcode = elements.contributorPasscode.value;
-    if (!name) { alert("Enter your name so contributions can be attributed."); return; }
-    if (!passcode) { alert("Enter the contributor passcode."); return; }
+    if (!passcode) { alert("Enter your passcode."); return; }
     elements.contributorUnlock.disabled = true;
     elements.contributorUnlock.textContent = "Checking...";
     try {
       // A harmless empty-entries save doubles as a passcode check - the
-      // server still verifies it and reports back before anything is
-      // written, so a wrong passcode is caught immediately rather than on
-      // the first real edit.
-      const resp = await fetch(SYNC_ENDPOINT, {
+      // server verifies it and reports back the resolved contributor name
+      // before anything is written, so a wrong passcode is caught
+      // immediately rather than on the first real edit, and the name is
+      // never typed by hand (it comes from the server's own passcode map).
+      const data = await fetchSyncJson(SYNC_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ passcode, updatedBy: name, documentId: state.activeId || "CWP-000", entries: [] })
+        body: JSON.stringify({ passcode, documentId: state.activeId || "CWP-000", entries: [] })
       });
-      const data = await resp.json();
-      if (!data.ok) throw new Error(data.error || "Could not verify the passcode.");
-      setContributorCreds(name, passcode);
+      setContributorCreds(data.contributorName, passcode);
       elements.contributorPasscode.value = "";
       const doc = byId.get(state.activeId);
       if (doc) setupRecordEditor(doc);
