@@ -110,6 +110,18 @@ html[data-theme="dark"] .document-header h1, html[data-theme="dark"] .results-he
 .status-pill { display: inline-block; padding: 1px 7px; color: var(--red); background: color-mix(in srgb, var(--red) 10%, transparent); border: 1px solid color-mix(in srgb, var(--red) 28%, transparent); border-radius: 999px; font-weight: 800; }
 .document-content { padding: 32px 38px 44px; overflow-wrap: anywhere; }
 .record-toolbar { padding: 13px 38px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+.sync-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 9px 38px; background: color-mix(in srgb, var(--blue) 7%, var(--surface-2)); border-bottom: 1px solid var(--line); font-size: 11px; }
+.sync-status { color: var(--ink-2); font-weight: 600; }
+.sync-status.sync-status-ok { color: var(--green, #1a7f37); }
+.sync-status.sync-status-error { color: var(--red); }
+.sync-status.sync-status-contributor { color: var(--blue); }
+#contributorToggleButton { padding: 5px 10px; color: var(--blue); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; }
+#contributorToggleButton:hover { border-color: var(--blue); }
+.contributor-form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; width: 100%; }
+.contributor-form input { padding: 6px 9px; min-width: 130px; flex: 1 1 130px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; font-size: 12px; }
+.contributor-form button { padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; }
+#contributorUnlockButton { color: #fff; background: var(--blue); border: 1px solid var(--blue); }
+#contributorCancelButton { color: var(--ink-2); background: var(--surface); border: 1px solid var(--line-strong); }
 .record-actions { display: flex; flex-wrap: wrap; gap: 7px; }
 .record-actions button { padding: 6px 10px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; }
 .record-actions button:hover { color: var(--blue); border-color: var(--blue); }
@@ -225,6 +237,7 @@ html[data-theme="dark"] .result-card strong { color: var(--ink); }
   .draft-banner span { display: none; }
   .document-header { padding: 25px 23px 20px; }
   .record-toolbar { padding: 12px 23px; }
+  .sync-bar { padding: 9px 23px; }
   .document-content { padding: 25px 23px 35px; }
   .document-footer { padding: 13px 23px; }
   .search-results { padding: 22px 16px 50px; }
@@ -247,7 +260,7 @@ html[data-theme="dark"] .result-card strong { color: var(--ink); }
   :root { color-scheme: light; --ink: #000; --muted: #444; --line: #bbb; --surface: #fff; --surface-2: #f3f3f3; }
   body { background: #fff; font-size: 10pt; }
   .topbar, .sidebar, .sidebar-scrim, .draft-banner, .toc-panel, .search-results { display: none !important; }
-  .record-toolbar { display: none !important; }
+  .record-toolbar, .sync-bar { display: none !important; }
   .workspace { margin: 0; padding: 0; }
   .document-layout { display: block; padding: 0; }
   .document-card { border: 0; border-radius: 0; box-shadow: none; }
@@ -322,6 +335,16 @@ html[data-theme="dark"] .result-card strong { color: var(--ink); }
             </div>
             <dl class="metadata" id="docMetadata"></dl>
           </header>
+          <section class="sync-bar" id="syncBar">
+            <span class="sync-status" id="syncStatusText">Checking shared data...</span>
+            <button type="button" id="contributorToggleButton">Unlock contributor access</button>
+            <div class="contributor-form" id="contributorForm" hidden>
+              <input type="text" id="contributorNameInput" placeholder="Your name" autocomplete="name" maxlength="60">
+              <input type="password" id="contributorPasscodeInput" placeholder="Passcode" autocomplete="off">
+              <button type="button" id="contributorUnlockButton">Unlock</button>
+              <button type="button" id="contributorCancelButton">Cancel</button>
+            </div>
+          </section>
           <section class="record-toolbar" id="recordToolbar" aria-label="Editable record controls" hidden>
             <div class="record-actions">
               <button type="button" id="editRecordButton">Edit yellow items</button>
@@ -437,12 +460,16 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     storage.available = true;
   } catch { storage.available = false; }
 
+  const SYNC_ENDPOINT = "https://script.google.com/macros/s/AKfycbzJBS2PyaAl4YPAkPHKgPZojw-xJBPOlgk2dpAHchxlxzZsJNth7A7LfS0vBAi5bxQG/exec";
+
   const state = {
     activeId: null,
     theme: storage.get("cwps-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
     editing: false,
     autoSaveTimer: null,
-    attachments: {}
+    attachments: {},
+    syncPushTimer: null,
+    syncing: false
   };
 
   const elements = {
@@ -463,6 +490,14 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     toc: $("tableOfContents"),
     recordToolbar: $("recordToolbar"),
     recordStatus: $("recordStatus"),
+    syncBar: $("syncBar"),
+    syncStatusText: $("syncStatusText"),
+    contributorToggle: $("contributorToggleButton"),
+    contributorForm: $("contributorForm"),
+    contributorName: $("contributorNameInput"),
+    contributorPasscode: $("contributorPasscodeInput"),
+    contributorUnlock: $("contributorUnlockButton"),
+    contributorCancel: $("contributorCancelButton"),
     editRecord: $("editRecordButton"),
     saveDraft: $("saveDraftButton"),
     downloadRecord: $("downloadRecordButton"),
@@ -837,6 +872,8 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
       field.dataset.original = "YELLOW PLACEHOLDER";
       field.setAttribute("role", "textbox");
       field.setAttribute("aria-label", `Open item ${index + 1}`);
+      field.contentEditable = "false";
+      field.setAttribute("aria-readonly", "true");
       mark.replaceWith(field);
     });
     elements.content.querySelectorAll(".task-checkbox").forEach((checkbox, index) => {
@@ -1092,6 +1129,204 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     }
   }
 
+  // --- Shared data sync (Apps Script + Google Sheet backend) -------------
+  // Contributor credentials are stored on this device only; the passcode is
+  // verified server-side on every write, never trusted client-side.
+  function getContributorCreds() {
+    try { return JSON.parse(localStorage.getItem("cwps-contributor") || "null"); }
+    catch { return null; }
+  }
+  function setContributorCreds(name, passcode) {
+    localStorage.setItem("cwps-contributor", JSON.stringify({ name, passcode }));
+  }
+  function clearContributorCreds() {
+    localStorage.removeItem("cwps-contributor");
+  }
+
+  function setSyncStatus(text, kind = "") {
+    if (!elements.syncStatusText) return;
+    elements.syncStatusText.textContent = text;
+    elements.syncStatusText.className = `sync-status${kind ? ` sync-status-${kind}` : ""}`;
+  }
+
+  function refreshSyncBarChrome() {
+    const creds = getContributorCreds();
+    if (creds) {
+      elements.contributorToggle.textContent = `${creds.name} \u00b7 Switch off contributor mode`;
+    } else {
+      elements.contributorToggle.textContent = "Unlock contributor access";
+    }
+    elements.contributorForm.hidden = true;
+  }
+
+  // Converts the sheet's flat entry list into the same nested "record" shape
+  // collectRecord()/applyRecordData() already use everywhere else in the
+  // app, so pulling shared data can reuse all the existing render/restore
+  // logic (row reconstruction, attachment restore, etc.) rather than
+  // duplicating it.
+  function entriesToRecord(doc, entries) {
+    const record = {
+      schema: "europlan-cwps-record-v1",
+      documentId: doc.id,
+      documentTitle: doc.title,
+      documentRevision: doc.revision,
+      layoutVersion: doc.id === "RA-001" ? "ra-scoring-v2" : "standard-v1",
+      packageRevision: manifest.revision,
+      savedAt: new Date().toISOString(),
+      values: {},
+      checks: {},
+      cells: {},
+      attachments: {}
+    };
+    for (const entry of entries) {
+      const truthy = (v) => v === true || String(v).trim().toLowerCase() === "true";
+      if (entry.fieldType === "value" && entry.fieldKey) record.values[entry.fieldKey] = entry.value || "";
+      else if (entry.fieldType === "check" && entry.fieldKey) record.checks[entry.fieldKey] = truthy(entry.value);
+      else if (entry.fieldType === "cell" && entry.fieldKey) record.cells[entry.fieldKey] = entry.value || "";
+      else if (entry.fieldType === "rowdel" && entry.tableKey && entry.rowKey) record.cells[`__rowdel__:${entry.tableKey}:${entry.rowKey}`] = "1";
+      else if (entry.fieldType === "attachment" && entry.tableKey && entry.rowKey) {
+        const key = `${entry.tableKey}:${entry.rowKey}:${entry.fieldKey || "0"}`;
+        record.attachments[key] = {
+          id: entry.driveFileId || `${key}`,
+          filename: entry.filename || "attachment",
+          mime: entry.mime || "application/octet-stream",
+          size: entry.sizeBytes || 0,
+          driveUrl: entry.driveUrl || ""
+        };
+      }
+    }
+    return record;
+  }
+
+  // Reads the currently-rendered DOM into the flat shape the sheet expects,
+  // deriving each field's table/row context by walking up to the nearest
+  // table[data-table-key]/tr[data-row-key], if any - fields outside any
+  // table (most form fields) use the "doc" sentinel instead.
+  function collectSyncEntries() {
+    const entries = [];
+    const contextOf = (el) => {
+      const row = el.closest("tr[data-row-key]");
+      const table = el.closest("table[data-table-key]");
+      return { tableKey: table?.dataset.tableKey || "doc", rowKey: row?.dataset.rowKey || "doc" };
+    };
+    elements.content.querySelectorAll(".editable-placeholder").forEach((field) => {
+      if (field.classList.contains("risk-score-output")) return;
+      const { tableKey, rowKey } = contextOf(field);
+      entries.push({ tableKey, rowKey, fieldType: "value", fieldKey: field.dataset.fieldKey, value: field.textContent.trim() });
+    });
+    elements.content.querySelectorAll(".task-checkbox").forEach((checkbox) => {
+      const { tableKey, rowKey } = contextOf(checkbox);
+      entries.push({ tableKey, rowKey, fieldType: "check", fieldKey: checkbox.dataset.checkKey, value: checkbox.checked ? "true" : "false" });
+    });
+    elements.content.querySelectorAll(".record-editable-cell").forEach((cell) => {
+      const { tableKey, rowKey } = contextOf(cell);
+      entries.push({ tableKey, rowKey, fieldType: "cell", fieldKey: cell.dataset.cellKey, value: cell.textContent.trim() });
+    });
+    elements.content.querySelectorAll('tr[data-deleted="true"]').forEach((row) => {
+      const table = row.closest("table[data-table-key]");
+      if (table) entries.push({ tableKey: table.dataset.tableKey, rowKey: row.dataset.rowKey, fieldType: "rowdel", value: "1" });
+    });
+    return entries;
+  }
+
+  // Attachments not yet uploaded (no driveFileId yet) are read from
+  // IndexedDB and base64-encoded for this one upload; already-synced
+  // attachments are skipped so a file is never re-uploaded on every save.
+  async function collectSyncAttachmentEntries() {
+    const entries = [];
+    for (const [key, meta] of Object.entries(state.attachments)) {
+      if (meta.driveFileId) continue;
+      const [tableKey, rowKey, slot] = key.split(":");
+      const stored = await idbGetAttachment(meta.id).catch(() => null);
+      if (!stored?.blob) continue;
+      const data = await blobToBase64(stored.blob);
+      entries.push({ tableKey, rowKey, fieldType: "attachment", fieldKey: slot, filename: meta.filename, mime: meta.mime, data });
+    }
+    return entries;
+  }
+
+  async function syncPullDocument(doc) {
+    setSyncStatus("Checking shared data...");
+    try {
+      const resp = await fetch(`${SYNC_ENDPOINT}?documentId=${encodeURIComponent(doc.id)}`);
+      if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+      const data = await resp.json();
+      if (!data.ok) throw new Error(data.error || "Unknown server error");
+      const serverRecord = entriesToRecord(doc, data.entries || []);
+      const isContributor = !!getContributorCreds();
+      const hasAnyData = Object.keys(serverRecord.values).length || Object.keys(serverRecord.checks).length
+        || Object.keys(serverRecord.cells).length || Object.keys(serverRecord.attachments).length;
+      if (hasAnyData) {
+        if (isContributor) {
+          // A contributor may have unsynced local edits (e.g. made while
+          // offline) - merge the server's data in with the same
+          // blank-protects-existing-nonblank rule Import feedback JSON
+          // uses, rather than overwriting local work outright.
+          const key = recordStorageKey(doc.id);
+          let existing = null;
+          try { existing = JSON.parse(storage.get(key) || "null"); } catch { existing = null; }
+          const { merged: mergedFields } = mergeFieldsPreferNonBlank(existing || {}, serverRecord);
+          const merged = {
+            ...serverRecord,
+            ...mergedFields,
+            attachments: { ...(serverRecord.attachments || {}), ...(existing?.attachments || {}) }
+          };
+          applyRecordData(merged, "Loaded the latest shared data.", true);
+        } else {
+          applyRecordData(serverRecord, "Viewing shared data.", false);
+        }
+      }
+      setSyncStatus(isContributor ? `${getContributorCreds().name} \u00b7 shared data loaded` : "Viewing shared data (read-only)", isContributor ? "contributor" : "ok");
+      return true;
+    } catch (err) {
+      setSyncStatus(`Could not reach the shared data (${err.message || "offline?"}). Showing your last local copy.`, "error");
+      return false;
+    }
+  }
+
+  async function syncPushDocument(doc) {
+    const creds = getContributorCreds();
+    if (!creds) return;
+    if (state.syncing) return;
+    state.syncing = true;
+    setSyncStatus(`${creds.name} \u00b7 saving...`, "contributor");
+    try {
+      const entries = collectSyncEntries();
+      const attachmentEntries = await collectSyncAttachmentEntries();
+      const payload = { passcode: creds.passcode, updatedBy: creds.name, documentId: doc.id, entries: [...entries, ...attachmentEntries] };
+      const resp = await fetch(SYNC_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      });
+      const data = await resp.json();
+      if (!data.ok) throw new Error(data.error || "Sync failed");
+      // Newly-uploaded attachments won't have a driveFileId locally yet -
+      // pulling the document's entries back tells us which ones now do, so
+      // we don't re-upload the same file on the next save.
+      const refreshed = await fetch(`${SYNC_ENDPOINT}?documentId=${encodeURIComponent(doc.id)}`).then((r) => r.json()).catch(() => null);
+      if (refreshed?.ok) {
+        for (const entry of refreshed.entries) {
+          if (entry.fieldType !== "attachment" || !entry.driveFileId) continue;
+          const key = `${entry.tableKey}:${entry.rowKey}:${entry.fieldKey || "0"}`;
+          if (state.attachments[key]) state.attachments[key].driveFileId = entry.driveFileId;
+        }
+      }
+      setSyncStatus(`${creds.name} \u00b7 saved to shared data at ${new Date().toLocaleTimeString()}`, "contributor");
+    } catch (err) {
+      setSyncStatus(`${creds.name} \u00b7 save failed (${err.message || "offline?"}) - kept locally, will not be lost`, "error");
+    } finally {
+      state.syncing = false;
+    }
+  }
+
+  function scheduleSyncPush() {
+    if (!getContributorCreds() || !state.activeId) return;
+    clearTimeout(state.syncPushTimer);
+    const doc = byId.get(state.activeId);
+    state.syncPushTimer = setTimeout(() => syncPushDocument(doc), 1200);
+  }
+
   function tableColumnCount(table) {
     const headerRow = table.tHead?.rows?.[0];
     if (headerRow) return headerRow.cells.length;
@@ -1188,6 +1423,7 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
       viewBtn.type = "button";
       viewBtn.className = "row-menu-attachment-view";
       viewBtn.dataset.attachmentId = meta.id;
+      if (meta.driveUrl) viewBtn.dataset.href = meta.driveUrl;
       viewBtn.textContent = `\uD83D\uDCCE ${meta.filename}`;
       const rmBtn = document.createElement("button");
       rmBtn.type = "button";
@@ -1389,7 +1625,7 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     };
   }
 
-  function applyRecordData(record, message = "Saved record loaded.") {
+  function applyRecordData(record, message = "Saved record loaded.", enterEditMode = true) {
     if (!record || record.schema !== "europlan-cwps-record-v1" || !byId.has(record.documentId)) {
       throw new Error("This is not a valid Europlan CWPS record file.");
     }
@@ -1398,10 +1634,10 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     }
     if (record.documentId !== state.activeId) {
       openDocument(record.documentId);
-      requestAnimationFrame(() => applyRecordData(record, message));
+      requestAnimationFrame(() => applyRecordData(record, message, enterEditMode));
       return;
     }
-    setRecordMode(true, false);
+    if (enterEditMode) setRecordMode(true, false);
     // Recreate any rows added on this or another device before restoring cell
     // text, so the target cells (and attachment slots) exist first.
     const rowAddGroups = new Map();
@@ -1482,6 +1718,35 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     return [parsed];
   }
 
+  // Merges incoming values/checks/cells onto an existing record without
+  // letting a blank/unchecked incoming entry overwrite a non-blank local
+  // one - shared by Import feedback JSON and the shared-data pull, since
+  // both face the same problem: the incoming record may include every field
+  // on the page (untouched ones as blanks), not just the ones someone
+  // actually meant to change.
+  function mergeFieldsPreferNonBlank(existingRecord, incomingRecord) {
+    const merged = {
+      values: { ...(existingRecord.values || {}) },
+      checks: { ...(existingRecord.checks || {}) },
+      cells: { ...(existingRecord.cells || {}) }
+    };
+    let fieldCount = 0;
+    for (const [fieldKey, value] of Object.entries(incomingRecord.values || {})) {
+      if (value === "" && (merged.values[fieldKey] || "") !== "") continue;
+      merged.values[fieldKey] = value; fieldCount++;
+    }
+    for (const [checkKey, value] of Object.entries(incomingRecord.checks || {})) {
+      const boolValue = Boolean(value);
+      if (!boolValue && merged.checks[checkKey]) continue;
+      merged.checks[checkKey] = boolValue; fieldCount++;
+    }
+    for (const [cellKey, value] of Object.entries(incomingRecord.cells || {})) {
+      if (value === "" && (merged.cells[cellKey] || "") !== "") continue;
+      merged.cells[cellKey] = value; fieldCount++;
+    }
+    return { merged, fieldCount };
+  }
+
   async function mergeFeedbackRecord(record) {
     if (!record || record.schema !== "europlan-cwps-record-v1" || !byId.has(record.documentId)) {
       return { ok: false, reason: `${record && record.documentId ? record.documentId : "Unknown item"}: not a recognised CWPS record - skipped.` };
@@ -1507,16 +1772,6 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
         attachments: {}
       };
     }
-    const merged = {
-      ...existing,
-      documentTitle: doc.title,
-      documentRevision: doc.revision,
-      savedAt: new Date().toISOString(),
-      values: { ...(existing.values || {}) },
-      checks: { ...(existing.checks || {}) },
-      cells: { ...(existing.cells || {}) },
-      attachments: { ...(existing.attachments || {}) }
-    };
     // Only the keys actually present in the incoming record are written.
     // Any locally saved fields, checks or cells not mentioned in this
     // import - for this document or any other - are left untouched.
@@ -1524,20 +1779,16 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     // untouched field comes through as an empty string / unchecked box - not
     // a deliberate answer. A blank/unchecked incoming value never overwrites
     // an existing non-blank one; only a genuinely filled-in value does.
-    let fieldCount = 0;
-    for (const [fieldKey, value] of Object.entries(record.values || {})) {
-      if (value === "" && (merged.values[fieldKey] || "") !== "") continue;
-      merged.values[fieldKey] = value; fieldCount++;
-    }
-    for (const [checkKey, value] of Object.entries(record.checks || {})) {
-      const boolValue = Boolean(value);
-      if (!boolValue && merged.checks[checkKey]) continue;
-      merged.checks[checkKey] = boolValue; fieldCount++;
-    }
-    for (const [cellKey, value] of Object.entries(record.cells || {})) {
-      if (value === "" && (merged.cells[cellKey] || "") !== "") continue;
-      merged.cells[cellKey] = value; fieldCount++;
-    }
+    const { merged: mergedFields, fieldCount: mergedFieldCount } = mergeFieldsPreferNonBlank(existing, record);
+    const merged = {
+      ...existing,
+      documentTitle: doc.title,
+      documentRevision: doc.revision,
+      savedAt: new Date().toISOString(),
+      ...mergedFields,
+      attachments: { ...(existing.attachments || {}) }
+    };
+    let fieldCount = mergedFieldCount;
     // Attachments are a sparse map - a slot only appears in the export if it
     // actually has a file, so there's no "blank means untouched" ambiguity
     // like the fields above: any entry present is written into IndexedDB and
@@ -1593,6 +1844,7 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
   }
 
   function scheduleDraftSave() {
+    scheduleSyncPush();
     if (!state.editing || !storage.available) return;
     clearTimeout(state.autoSaveTimer);
     state.autoSaveTimer = setTimeout(() => saveDraft(false), 500);
@@ -1685,27 +1937,45 @@ ${copy.innerHTML}<footer>Europlan CWPS record copy. The controlled master remain
 
   function setupRecordEditor(doc) {
     clearTimeout(state.autoSaveTimer);
+    clearTimeout(state.syncPushTimer);
     state.editing = false;
     state.attachments = {};
+    const isContributor = !!getContributorCreds();
     const hasOpenItems = elements.content.querySelectorAll("mark.placeholder").length > 0;
     const hasTable = elements.content.querySelectorAll("table").length > 0;
     const isForm = doc.category === "Forms";
-    elements.recordToolbar.hidden = !hasOpenItems && !isForm && !hasTable;
-    if (elements.recordToolbar.hidden) return;
+    const hasEditableContent = hasOpenItems || isForm || hasTable;
 
-    setRecordMode(isForm, false);
+    // Table/row structure setup runs regardless of contributor status -
+    // viewers need it too, so a row a contributor added elsewhere renders
+    // (read-only) instead of being invisible to them. ensureEditableFields
+    // must run before setupRiskAssessmentEditor, which looks for the
+    // .editable-placeholder spans it produces.
+    ensureEditableFields();
     setupRiskAssessmentEditor();
     setupRowEditableTables();
-    const tableNote = hasTable ? " Use \u201c+ Add row\u201d at the end of a table to add an entry, or the \u2715 on a row to remove it." : "";
-    setRecordStatus(storage.available
-      ? (doc.id === "RA-001" ? `The risk table is editable. Enter L and I from 1 to 5; scores and legend colours calculate automatically.${tableNote} Download a copy for reliable retention.` : `Yellow edits are record-specific and do not change the Markdown master.${tableNote} Browser drafts are best-effort; download a copy for reliable retention.`)
-      : (doc.id === "RA-001" ? `The risk table is editable and scores calculate automatically.${tableNote} Browser storage is unavailable; use the download controls.` : `Yellow edits are record-specific and do not change the Markdown master.${tableNote} Browser storage is unavailable; use the download controls.`));
+    refreshSyncBarChrome();
 
+    elements.recordToolbar.hidden = !isContributor || !hasEditableContent;
+    if (!elements.recordToolbar.hidden) {
+      setRecordMode(isForm, false);
+      const tableNote = hasTable ? " Use \u201c+ Add row\u201d at the end of a table to add an entry, or the \u2715 on a row to remove it." : "";
+      setRecordStatus(storage.available
+        ? (doc.id === "RA-001" ? `The risk table is editable. Enter L and I from 1 to 5; scores and legend colours calculate automatically.${tableNote} Download a copy for reliable retention.` : `Yellow edits are record-specific and do not change the Markdown master.${tableNote} Browser drafts are best-effort; download a copy for reliable retention.`)
+        : (doc.id === "RA-001" ? `The risk table is editable and scores calculate automatically.${tableNote} Browser storage is unavailable; use the download controls.` : `Yellow edits are record-specific and do not change the Markdown master.${tableNote} Browser storage is unavailable; use the download controls.`));
+    }
+
+    // Local-first: restore any local draft immediately, so something
+    // sensible is showing even before (or if) the network pull below
+    // completes. The pull, once it resolves, overlays the shared state on
+    // top (merging safely for a contributor - see syncPullDocument).
     const saved = storage.get(recordStorageKey(doc.id));
     if (saved) {
-      try { applyRecordData(JSON.parse(saved), "Browser draft restored."); }
+      try { applyRecordData(JSON.parse(saved), "Browser draft restored.", isContributor); }
       catch { storage.remove(recordStorageKey(doc.id)); }
     }
+    syncPullDocument(doc);
+
   }
 
   function setTheme(theme) {
@@ -1783,7 +2053,8 @@ ${copy.innerHTML}<footer>Europlan CWPS record copy. The controlled master remain
     const action = item.dataset.action;
     if (item.classList.contains("row-menu-attachment-view")) {
       closeRowMenu();
-      openAttachmentThumb(item.dataset.attachmentId);
+      if (item.dataset.href) window.open(item.dataset.href, "_blank");
+      else openAttachmentThumb(item.dataset.attachmentId);
       return;
     }
     if (action === "duplicate") { closeRowMenu(); duplicateTableRow(tableKey, rowKey); return; }
@@ -1810,6 +2081,51 @@ ${copy.innerHTML}<footer>Europlan CWPS record copy. The controlled master remain
     scheduleDraftSave();
   });
   elements.content.addEventListener("change", scheduleDraftSave);
+  elements.contributorToggle.addEventListener("click", () => {
+    if (getContributorCreds()) {
+      if (confirm("Switch off contributor mode on this device? You can unlock again anytime with the passcode.")) {
+        clearContributorCreds();
+        const doc = byId.get(state.activeId);
+        if (doc) setupRecordEditor(doc);
+      }
+      return;
+    }
+    elements.contributorForm.hidden = !elements.contributorForm.hidden;
+    if (!elements.contributorForm.hidden) elements.contributorName.focus();
+  });
+  elements.contributorCancel.addEventListener("click", () => {
+    elements.contributorForm.hidden = true;
+  });
+  elements.contributorUnlock.addEventListener("click", async () => {
+    const name = elements.contributorName.value.trim();
+    const passcode = elements.contributorPasscode.value;
+    if (!name) { alert("Enter your name so contributions can be attributed."); return; }
+    if (!passcode) { alert("Enter the contributor passcode."); return; }
+    elements.contributorUnlock.disabled = true;
+    elements.contributorUnlock.textContent = "Checking...";
+    try {
+      // A harmless empty-entries save doubles as a passcode check - the
+      // server still verifies it and reports back before anything is
+      // written, so a wrong passcode is caught immediately rather than on
+      // the first real edit.
+      const resp = await fetch(SYNC_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ passcode, updatedBy: name, documentId: state.activeId || "CWP-000", entries: [] })
+      });
+      const data = await resp.json();
+      if (!data.ok) throw new Error(data.error || "Could not verify the passcode.");
+      setContributorCreds(name, passcode);
+      elements.contributorPasscode.value = "";
+      const doc = byId.get(state.activeId);
+      if (doc) setupRecordEditor(doc);
+    } catch (err) {
+      alert(`Could not unlock contributor access: ${err.message || "unknown error"}`);
+    } finally {
+      elements.contributorUnlock.disabled = false;
+      elements.contributorUnlock.textContent = "Unlock";
+    }
+  });
   elements.theme.addEventListener("click", () => setTheme(state.theme === "dark" ? "light" : "dark"));
   elements.print.addEventListener("click", () => window.print());
   elements.menu.addEventListener("click", () => document.body.classList.contains("nav-open") ? closeMenu() : openMenu());
