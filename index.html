@@ -1019,6 +1019,47 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     if (note) note.textContent = visibleCount ? `${visibleCount} of ${totalItems} items logged for this date` : "No entries logged for this date yet";
   }
 
+  // Rolls today's entries forward automatically for every item currently
+  // tracked (whatever the most recent prior date's rows are, not just the
+  // original 25 - a genuinely new item added later via Duplicate row also
+  // gets carried forward from then on). Only runs for a contributor (only
+  // they can persist anything), and only if today has no rows yet - so
+  // this is a one-time-per-day action, not something that re-triggers on
+  // every load once today's sheet already exists.
+  //
+  // Uses a predictable row key (derived from the date and item name, not
+  // random) specifically so two contributors opening the app around the
+  // same time on a new day converge on the same rows for the same items
+  // instead of each creating their own duplicate set - the server's
+  // upsert-by-key logic then just harmlessly merges them into one.
+  function autoCreateTodayEntries(table) {
+    if (!getContributorCreds()) return false;
+    const today = todayIso();
+    const rows = [...table.querySelectorAll(":scope > tbody > tr[data-row-key]")]
+      .filter((row) => !row.classList.contains("row-add-control") && row.dataset.deleted !== "true");
+    if (rows.some((row) => (row.cells[1]?.textContent || "").trim() === today)) return false;
+
+    const mostRecentByItem = new Map();
+    rows.forEach((row) => {
+      const item = (row.cells[0]?.textContent || "").trim();
+      const date = (row.cells[1]?.textContent || "").trim();
+      if (!item || !date) return;
+      const existing = mostRecentByItem.get(item);
+      if (!existing || date > existing.date) mostRecentByItem.set(item, { date, row });
+    });
+    if (!mostRecentByItem.size) return false;
+
+    let created = false;
+    mostRecentByItem.forEach(({ row: sourceRow }, item) => {
+      const safeItem = item.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-+|-+$)/g, "") || "item";
+      const rowKey = `auto-${today}-${safeItem}`;
+      if (table.querySelector(`tr[data-row-key="${CSS.escape(rowKey)}"]`)) return;
+      createTableRow(table, rowKey, sourceRow);
+      created = true;
+    });
+    return created;
+  }
+
   function selectDailyLogDate(table, date) {
     const select = elements.content.querySelector(".prg-date-select");
     if (select) { select.value = date; select.dataset.userSelected = "true"; }
@@ -1494,10 +1535,31 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
           applyRecordData(serverRecord, "Viewing shared data.", false);
         }
       }
+      if (isContributor && doc.id === "PRG-001") {
+        const log = elements.content.querySelector("table.daily-log-table");
+        if (log && autoCreateTodayEntries(log)) {
+          buildDailyLogDateFilter(log);
+          selectDailyLogDate(log, todayIso());
+          scheduleSyncPush();
+        }
+      }
       setSyncStatus(isContributor ? `${getContributorCreds().name} \u00b7 shared data loaded` : "Viewing shared data (read-only)", isContributor ? "contributor" : "ok");
       return true;
     } catch (err) {
       setSyncStatus(`Could not reach the shared data (${err.message || "offline?"}). Showing your last local copy.`, "error");
+      // Offline or unreachable - still roll today's entries forward from
+      // whatever's already in the DOM (the local draft, already restored
+      // before this ran). scheduleSyncPush is safe to call even offline;
+      // it'll just fail quietly and retry next time something changes,
+      // same as any other edit made while offline.
+      if (getContributorCreds() && doc.id === "PRG-001") {
+        const log = elements.content.querySelector("table.daily-log-table");
+        if (log && autoCreateTodayEntries(log)) {
+          buildDailyLogDateFilter(log);
+          selectDailyLogDate(log, todayIso());
+          scheduleSyncPush();
+        }
+      }
       return false;
     }
   }
