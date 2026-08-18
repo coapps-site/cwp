@@ -1426,6 +1426,20 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
   // app, so pulling shared data can reuse all the existing render/restore
   // logic (row reconstruction, attachment restore, etc.) rather than
   // duplicating it.
+  // If a "log-date" value ever comes back from the shared backend with a
+  // time/timestamp attached (e.g. "2026-08-18T07:00:00.000Z" instead of
+  // "2026-08-18" - Google Sheets can silently auto-convert a date-looking
+  // string into an actual date/time value server-side), every date
+  // comparison in this app (is this row today's, does today already have
+  // entries, which date is currently selected) would otherwise silently
+  // fail. The backend now also prevents this at the source, but this
+  // keeps the app resilient client-side regardless of which backend
+  // version is currently deployed.
+  function normalizeLogDateValue(raw) {
+    const match = /^\d{4}-\d{2}-\d{2}/.exec(String(raw || ""));
+    return match ? match[0] : raw;
+  }
+
   function entriesToRecord(doc, entries) {
     const record = {
       schema: "europlan-cwps-record-v1",
@@ -1442,7 +1456,10 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     };
     for (const entry of entries) {
       const truthy = (v) => v === true || String(v).trim().toLowerCase() === "true";
-      if (entry.fieldType === "value" && entry.fieldKey) record.values[entry.fieldKey] = entry.value || "";
+      if (entry.fieldType === "value" && entry.fieldKey) {
+        const isLogDate = entry.fieldKey.startsWith("log-date:");
+        record.values[entry.fieldKey] = isLogDate ? normalizeLogDateValue(entry.value) : (entry.value || "");
+      }
       else if (entry.fieldType === "check" && entry.fieldKey) record.checks[entry.fieldKey] = truthy(entry.value);
       else if (entry.fieldType === "cell" && entry.fieldKey) record.cells[entry.fieldKey] = entry.value || "";
       else if (entry.fieldType === "rowdel" && entry.tableKey && entry.rowKey) record.cells[`__rowdel__:${entry.tableKey}:${entry.rowKey}`] = "1";
