@@ -978,6 +978,17 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
   // Cumulative % cell - "as of this row's date", so browsing back to an
   // earlier date shows what cumulative progress genuinely was then, not
   // today's total. Flags (doesn't block) a room that runs over 100%.
+  //
+  // 2026-08-17 is a one-time catch-up baseline: the user supplied it as
+  // the true cumulative % AS OF that date for every item, not as that
+  // day's own contribution to add on top of whatever came before. A plain
+  // additive model got this wrong for a few items that had leftover real
+  // data in their original seed row (from earlier hands-on testing before
+  // this catch-up existed) - the baseline is a hard reset of the running
+  // total to exactly the given number, discarding whatever came before it
+  // chronologically; anything logged after 17 August still accumulates
+  // normally on top of that reset point.
+  const CUMULATIVE_OVERRIDE_DATE = "2026-08-17";
   function recomputeDailyLogCumulatives(table) {
     const rows = [...table.querySelectorAll(":scope > tbody > tr[data-row-key]")]
       .filter((row) => !row.classList.contains("row-add-control") && row.dataset.deleted !== "true");
@@ -994,7 +1005,12 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
       roomRows.forEach((row) => {
         const raw = (row.cells[3]?.textContent || "").replace("%", "").trim();
         const pct = Number.parseFloat(raw);
-        running += Number.isFinite(pct) ? pct : 0;
+        const rowDate = (row.cells[1]?.textContent || "").trim();
+        if (rowDate === CUMULATIVE_OVERRIDE_DATE) {
+          running = Number.isFinite(pct) ? pct : running;
+        } else {
+          running += Number.isFinite(pct) ? pct : 0;
+        }
         const cumCell = row.cells[4];
         if (!cumCell) return;
         const rounded = Math.round(running);
