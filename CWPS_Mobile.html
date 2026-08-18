@@ -1044,9 +1044,9 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
     }
     const select = bar.querySelector(".prg-date-select");
     const rows = [...table.querySelectorAll(":scope > tbody > tr[data-row-key]")].filter((row) => !row.classList.contains("row-add-control") && row.dataset.deleted !== "true");
-    const dates = [...new Set(rows.map((row) => (row.cells[1]?.textContent || "").trim()).filter(Boolean))].sort().reverse();
+    const realDates = [...new Set(rows.map((row) => (row.cells[1]?.textContent || "").trim()).filter(Boolean))].sort().reverse();
     const today = todayIso();
-    if (!dates.includes(today)) dates.unshift(today);
+    const dates = realDates.includes(today) ? realDates : [today, ...realDates];
     const previousValue = select.value;
     select.innerHTML = "";
     dates.forEach((d) => {
@@ -1055,7 +1055,14 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
       opt.textContent = d === today ? `${d} (today)` : d;
       select.appendChild(opt);
     });
-    const nextValue = previousValue && dates.includes(previousValue) ? previousValue : today;
+    // Default to the most recent date that actually HAS entries, not
+    // "today" unconditionally - a fresh deployment (or several days with
+    // nobody logging anything) otherwise lands on an empty "today" with no
+    // visible way to find a room to duplicate from. Once someone logs an
+    // entry for today, today becomes the most recent real date and this
+    // naturally shows it by default from then on.
+    const mostRecentRealDate = realDates[0] || today;
+    const nextValue = previousValue && dates.includes(previousValue) ? previousValue : mostRecentRealDate;
     select.value = nextValue;
     applyDailyLogDateFilter(table, nextValue);
   }
