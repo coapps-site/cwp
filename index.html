@@ -283,6 +283,37 @@ html[data-theme="dark"] .result-card strong { color: var(--ink); }
   .document-content { padding: 18px 0 0; }
   .document-content h2, .document-content h3 { break-after: avoid; color: #000; }
   .table-wrap { overflow: visible; border-color: #999; break-inside: auto; }
+  /* overflow:visible above only removes the on-screen scroll container -
+     without also constraining the table itself, a wide table (e.g.
+     RA-001's 11-column risk matrix) grows to its natural content width
+     and the page simply cuts off whatever falls past the printable
+     boundary, rather than wrapping. Forcing a fixed layout at 100% width
+     makes every column share the fixed page width and wrap its content
+     instead. */
+  .document-content table { width: 100% !important; table-layout: fixed; }
+  .document-content td, .document-content th { overflow-wrap: break-word; word-break: break-word; white-space: normal !important; }
+  /* RA-001's risk table has 11 columns (verified against the live DOM:
+     Ref, Activity/hazard, Persons exposed and potential harm, Required
+     controls, Initial L, Initial I, Initial score, Residual L, Residual
+     I, Residual score, Owner/record) - equal fixed widths would waste
+     space on short ones (Ref, L/I/score) while starving the text-heavy
+     ones. Proportional widths use the page more sensibly; still
+     genuinely tight on a portrait page given 11 columns, so landscape
+     orientation (available in the print dialog's layout option) is
+     worth using for this specific document. */
+  .risk-assessment-table { font-size: 8.5pt; min-width: 0 !important; }
+  .risk-assessment-table th:nth-child(1), .risk-assessment-table td:nth-child(1) { width: 4%; }
+  .risk-assessment-table th:nth-child(2), .risk-assessment-table td:nth-child(2) { width: 13%; }
+  .risk-assessment-table th:nth-child(3), .risk-assessment-table td:nth-child(3) { width: 13%; }
+  .risk-assessment-table th:nth-child(4), .risk-assessment-table td:nth-child(4) { width: 22%; }
+  .risk-assessment-table th:nth-child(5), .risk-assessment-table td:nth-child(5) { width: 5%; }
+  .risk-assessment-table th:nth-child(6), .risk-assessment-table td:nth-child(6) { width: 5%; }
+  .risk-assessment-table th:nth-child(7), .risk-assessment-table td:nth-child(7) { width: 6%; }
+  .risk-assessment-table th:nth-child(8), .risk-assessment-table td:nth-child(8) { width: 5%; }
+  .risk-assessment-table th:nth-child(9), .risk-assessment-table td:nth-child(9) { width: 5%; }
+  .risk-assessment-table th:nth-child(10), .risk-assessment-table td:nth-child(10) { width: 6%; }
+  .risk-assessment-table th:nth-child(11), .risk-assessment-table td:nth-child(11) { width: 16%; }
+  .risk-assessment-table th:nth-child(n+5):nth-child(-n+10), .risk-assessment-table td:nth-child(n+5):nth-child(-n+10) { min-width: 0 !important; }
   .document-content tr { break-inside: avoid; }
   .document-content a { color: #000; text-decoration: none; }
   .document-footer { margin-top: 20px; padding: 10px 0; }
