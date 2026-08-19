@@ -24,6 +24,14 @@
       "path": "docs/00_Project_Control/PRG-001_RevC1_Progress_and_Constraints_Report.md"
     },
     {
+      "id": "SNG-001",
+      "title": "Snag List and Defect Tracker",
+      "revision": "C1",
+      "status": "Draft",
+      "category": "Project Control",
+      "path": "docs/00_Project_Control/SNG-001_RevC1_Snag_List_and_Defect_Tracker.md"
+    },
+    {
       "id": "HPR-001",
       "title": "Interface and Hold Point Register",
       "revision": "C1",
