@@ -1602,6 +1602,7 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
         const key = `${entry.tableKey}:${entry.rowKey}:${entry.fieldKey || "0"}`;
         record.attachments[key] = {
           id: entry.driveFileId || `${key}`,
+          driveFileId: entry.driveFileId || "",
           filename: entry.filename || "attachment",
           mime: entry.mime || "application/octet-stream",
           size: entry.sizeBytes || 0,
@@ -1686,10 +1687,19 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
             ...mergedFields,
             attachments: { ...(serverRecord.attachments || {}), ...(existing?.attachments || {}) }
           };
-          applyRecordData(merged, "Loaded the latest shared data.", true);
+          await applyRecordData(merged, "Loaded the latest shared data.", true);
         } else {
-          applyRecordData(serverRecord, "Viewing shared data.", false);
+          await applyRecordData(serverRecord, "Viewing shared data.", false);
         }
+      }
+      if (isContributor) {
+        // Retry any attachment that's only ever reached this device's own
+        // storage (no driveUrl yet - e.g. it was attached while offline,
+        // or the sync push it was part of never completed). This runs
+        // every time a contributor opens the document, not only when they
+        // make a new edit, since a stuck attachment on a device nobody
+        // touches again would otherwise never get another chance to sync.
+        if (Object.values(state.attachments).some((meta) => !meta.driveFileId)) scheduleSyncPush();
       }
       if (isContributor && doc.id === "PRG-001") {
         const log = elements.content.querySelector("table.daily-log-table");
@@ -1743,7 +1753,11 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
         for (const entry of refreshed.entries) {
           if (entry.fieldType !== "attachment" || !entry.driveFileId) continue;
           const key = `${entry.tableKey}:${entry.rowKey}:${entry.fieldKey || "0"}`;
-          if (state.attachments[key]) state.attachments[key].driveFileId = entry.driveFileId;
+          if (state.attachments[key]) {
+            state.attachments[key].driveFileId = entry.driveFileId;
+            state.attachments[key].driveUrl = entry.driveUrl || state.attachments[key].driveUrl || "";
+            refreshRowMenuBadge(entry.tableKey, entry.rowKey);
+          }
         }
       }
       setSyncStatus(`${creds.name} \u00b7 saved to shared data at ${new Date().toLocaleTimeString()}`, "contributor");
@@ -1926,7 +1940,16 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
         viewBtn.dataset.attachmentId = meta.id;
         if (meta.driveUrl) viewBtn.dataset.href = meta.driveUrl;
         const label = groupName ? `${groupLabel(groupName)}: ` : "";
-        viewBtn.textContent = `\uD83D\uDCCE ${label}${meta.filename}`;
+        // An attachment without a driveUrl yet has only ever reached this
+        // device's own storage, not the shared Drive folder - anyone else
+        // opening this record can't see it. Flagging that here, rather
+        // than leaving it silent, means whoever attached it knows to keep
+        // the app open with a connection until it clears, instead of a
+        // colleague discovering it's missing much later via a confusing
+        // error.
+        const statusIcon = meta.driveFileId ? "" : "\u23F3 ";
+        viewBtn.textContent = `\uD83D\uDCCE ${statusIcon}${label}${meta.filename}`;
+        if (!meta.driveFileId) viewBtn.title = "Not yet shared - only visible on this device until it syncs";
         chip.appendChild(viewBtn);
         if (!isLockedLogRow && !isViewer) {
           const rmBtn = document.createElement("button");
@@ -2249,11 +2272,12 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
       const log = elements.content.querySelector("table.daily-log-table");
       if (log) { recomputeDailyLogCumulatives(log); buildDailyLogDateFilter(log); enforceDailyLogDateLocks(); }
     }
-    restoreAttachmentsFromRecord(record).catch((err) => console.error("Attachment restore failed:", err));
+    const attachmentRestorePromise = restoreAttachmentsFromRecord(record).catch((err) => { console.error("Attachment restore failed:", err); });
     const revisionNote = record.documentRevision !== byId.get(state.activeId).revision
       ? ` Record revision ${record.documentRevision} differs from current revision ${byId.get(state.activeId).revision}.`
       : "";
     setRecordStatus(`${message}${revisionNote}`, revisionNote ? "warning" : "success");
+    return attachmentRestorePromise;
   }
 
   // Populates the in-memory attachment index and thumbnails from a record's
@@ -2277,7 +2301,7 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
         } catch { continue; }
       }
       const [tableKey, rowKey] = key.split(":");
-      state.attachments[key] = { id: meta.id, filename: meta.filename, mime: meta.mime, size: meta.size };
+      state.attachments[key] = { id: meta.id, filename: meta.filename, mime: meta.mime, size: meta.size, driveFileId: meta.driveFileId || "", driveUrl: meta.driveUrl || "" };
       refreshRowMenuBadge(tableKey, rowKey);
     }
   }
