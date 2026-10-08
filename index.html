@@ -1555,9 +1555,25 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
   // it. Retries a couple of times with a short backoff before giving up,
   // and reports the real HTTP status if it still isn't JSON, so a
   // recurring failure is diagnosable rather than just "not valid JSON".
-  async function fetchSyncJson(url, options, attempt = 1) {
-    const resp = await fetch(url, options);
-    const text = await resp.text();
+  async function fetchSyncJson(url, options = {}, attempt = 1) {
+    // Every request has a hard timeout so a weak connection can never hang
+    // a save indefinitely; uploads (large bodies) get longer than small JSON.
+    const { timeoutMs = 25000, ...fetchOptions } = options;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    let resp, text;
+    try {
+      resp = await fetch(url, { ...fetchOptions, signal: ctrl.signal });
+      text = await resp.text();
+    } catch (netErr) {
+      const e = new Error(ctrl.signal.aborted
+        ? "Connection too slow - the request timed out"
+        : "No usable connection");
+      e.weakConnection = true;
+      throw e;
+    } finally {
+      clearTimeout(timer);
+    }
     let data;
     try { data = JSON.parse(text); }
     catch {
@@ -1567,9 +1583,24 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
       }
       throw new Error(`Server returned ${resp.status}${resp.statusText ? ` ${resp.statusText}` : ""} (not JSON) after ${attempt} attempts`);
     }
+    // The server says "busy" when another save holds its lock. That is
+    // temporary, so wait (2s, 4s, 8s) and try again before reporting it.
+    if (!data.ok && /busy/i.test(data.error || "") && attempt < 4) {
+      await new Promise((resolve) => setTimeout(resolve, 2000 * Math.pow(2, attempt - 1)));
+      return fetchSyncJson(url, options, attempt + 1);
+    }
     if (!data.ok) throw new Error(data.error || `Server error (status ${resp.status})`);
     return data;
   }
+
+  // True when the browser itself reports no connection or a 2G-class link,
+  // where a photo upload would almost certainly stall half-way.
+  function connectionTooWeakForUpload() {
+    if (navigator.onLine === false) return true;
+    const c = navigator.connection;
+    return !!(c && (c.saveData || /^(slow-2g|2g)$/.test(c.effectiveType || "")));
+  }
+  const WEAK_UPLOAD_MESSAGE = "Photo/file upload cancelled - your connection is too weak. The file is kept on this device. Please try again from a better connection (Wi-Fi or stronger signal).";
 
   function getContributorCreds() {
     try { return JSON.parse(localStorage.getItem("cwps-contributor") || "null"); }
@@ -1775,18 +1806,36 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
   async function syncPushDocument(doc) {
     const creds = getContributorCreds();
     if (!creds) return;
-    if (state.syncing) return;
+    if (state.syncing) { state.syncPending = doc; return; } // re-run when current save ends
     state.syncing = true;
     setSyncStatus(`${creds.name} \u00b7 saving...`, "contributor");
+    let uploadFailed = false;
     try {
+      // 1) Text/data entries first, on their own small request, so a slow
+      //    photo upload can never block or lose the form data.
       const entries = collectSyncEntries();
-      const attachmentEntries = await collectSyncAttachmentEntries();
-      const payload = { passcode: creds.passcode, documentId: doc.id, entries: [...entries, ...attachmentEntries] };
       await fetchSyncJson(SYNC_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ passcode: creds.passcode, documentId: doc.id, entries })
       });
+      // 2) Each pending attachment on its own request with its own timeout.
+      const attachmentEntries = await collectSyncAttachmentEntries();
+      for (const att of attachmentEntries) {
+        if (connectionTooWeakForUpload()) { uploadFailed = true; break; }
+        try {
+          setSyncStatus(`${creds.name} \u00b7 uploading ${att.filename || "file"}...`, "contributor");
+          await fetchSyncJson(SYNC_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ passcode: creds.passcode, documentId: doc.id, entries: [att] }),
+            timeoutMs: 60000
+          });
+        } catch (upErr) {
+          if (upErr.weakConnection) { uploadFailed = true; break; }
+          throw upErr;
+        }
+      }
       // Newly-uploaded attachments won't have a driveFileId locally yet -
       // pulling the document's entries back tells us which ones now do, so
       // we don't re-upload the same file on the next save.
@@ -1802,11 +1851,24 @@ window.CWPS_DATA = {"manifest":{"system":"Europlan Construction Work Package Sys
           }
         }
       }
-      setSyncStatus(`${creds.name} \u00b7 saved to shared data at ${new Date().toLocaleTimeString()}`, "contributor");
+      if (uploadFailed) {
+        setSyncStatus(`${creds.name} \u00b7 data saved, but file upload cancelled (weak connection) - try again on a better connection`, "error");
+        if (Date.now() - (state.lastWeakAlert || 0) > 60000) { state.lastWeakAlert = Date.now(); alert(WEAK_UPLOAD_MESSAGE); }
+      } else {
+        setSyncStatus(`${creds.name} \u00b7 saved to shared data at ${new Date().toLocaleTimeString()}`, "contributor");
+      }
     } catch (err) {
-      setSyncStatus(`${creds.name} \u00b7 save failed (${err.message || "offline?"}) - kept locally, will not be lost`, "error");
+      if (err.weakConnection) {
+        setSyncStatus(`${creds.name} \u00b7 save cancelled (weak connection) - kept on this device, try again on a better connection`, "error");
+      } else {
+        setSyncStatus(`${creds.name} \u00b7 save failed (${err.message || "offline?"}) - kept locally, will not be lost`, "error");
+      }
     } finally {
       state.syncing = false;
+      if (state.syncPending) {
+        state.syncPending = null;
+        if (!uploadFailed) scheduleSyncPush();
+      }
     }
   }
 
