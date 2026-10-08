@@ -206,6 +206,11 @@ html[data-theme="dark"] .editable-placeholder { color: #fff5bd; }
 .select-cell:disabled { color: var(--ink); background: transparent; border-color: transparent; padding: 4px 0; -webkit-appearance: none; appearance: none; }
 .record-mode .select-cell { background: color-mix(in srgb, var(--yellow) 34%, var(--surface)); border-color: color-mix(in srgb, var(--yellow-border) 48%, transparent); }
 .record-mode .select-cell:disabled { background: transparent; border-color: transparent; }
+.snag-table th:first-child, .snag-table td:first-child { min-width: 170px; }
+.snag-table td:first-child .select-cell { min-width: 150px; font-size: 13px; }
+.snag-table .select-cell { text-align: right; text-align-last: right; padding-right: 4px; }
+.snag-table .select-cell:disabled { text-align: left; text-align-last: left; }
+.snag-table .select-cell option { text-align: left; }
 .snag-status-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 14px 0 8px; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
 .snag-status-filter label { display: flex; align-items: center; gap: 6px; }
 .snag-filter-note { color: var(--muted); font-size: 12px; }
